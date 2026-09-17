@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Dashboard — 9Plus</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ===== OMNIX Design System tokens ===== */
+:root{
+  --omnix-bg:#f5f6f8; --omnix-surface:#ffffff; --omnix-surface-2:#eef1f5;
+  --omnix-border:#dfe3e9; --omnix-fg:#131820; --omnix-fg-muted:#5b6472;
+  --omnix-accent:#5b5bd6; --omnix-accent-soft:#e8e8fb; --on-accent:#ffffff;
+  /* semantic: text value (readable on surface/soft) + soft bg */
+  --omnix-success:#15803d; --omnix-success-soft:#dcfce7;
+  --omnix-warning:#a15c00; --omnix-warning-soft:#fdeccf;
+  --omnix-danger:#b91c1c;  --omnix-danger-soft:#fde2e4;
+  --omnix-info:#1d4ed8;    --omnix-info-soft:#e0e9ff;
+  /* chart series palette (anchored on accent) */
+  --c1:#5b5bd6; --c2:#15803d; --c3:#b91c1c; --c4:#a15c00; --c5:#1d4ed8; --c6:#7c3aed; --c7:#0e7490; --c8:#be185d;
+  /* radii / spacing */
+  --r-lg:8px; --r-xl:12px; --gap:16px;
+  /* legacy aliases (กันไม่ให้ inline style เดิมพัง) */
+  --bg:var(--omnix-bg); --panel:var(--omnix-surface); --card:var(--omnix-surface); --card2:var(--omnix-surface-2);
+  --line:var(--omnix-border); --txt:var(--omnix-fg); --sub:var(--omnix-fg-muted); --mut:var(--omnix-fg-muted);
+  --accent:var(--omnix-accent); --accent2:var(--c2); --danger:var(--c3); --warn:var(--c4); --purple:var(--c6); --pink:var(--c8); --orange:var(--c4);
+  --radius:8px;
+}
+html.dark{
+  --omnix-bg:#0d1117; --omnix-surface:#161b22; --omnix-surface-2:#1d242e;
+  --omnix-border:#2b323d; --omnix-fg:#e7ebf1; --omnix-fg-muted:#98a2b1;
+  --omnix-accent:#8b8bf0; --omnix-accent-soft:#23244a; --on-accent:#0d1117;
+  --omnix-success:#4ade80; --omnix-success-soft:#0f2e1d;
+  --omnix-warning:#fbbf24; --omnix-warning-soft:#33260f;
+  --omnix-danger:#fb7185;  --omnix-danger-soft:#3a1620;
+  --omnix-info:#93b4ff;    --omnix-info-soft:#16233f;
+  --c1:#8b8bf0; --c2:#4ade80; --c3:#fb7185; --c4:#fbbf24; --c5:#93b4ff; --c6:#c4b5fd; --c7:#22d3ee; --c8:#f472b6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:light}
+html.dark{color-scheme:dark}
+body{font-family:Inter,"IBM Plex Sans Thai","Noto Sans Thai","Noto Sans SC",system-ui,sans-serif;background:var(--omnix-bg);color:var(--omnix-fg);font-size:14px;line-height:1.55;padding:20px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1400px;margin:0 auto}
+/* focus visibility (design rule #4) */
+:focus-visible{outline:2px solid var(--omnix-accent);outline-offset:2px;border-radius:6px}
+
+/* header */
+.head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.head-l{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:var(--r-xl);background:var(--omnix-accent-soft);color:var(--omnix-accent);display:flex;align-items:center;justify-content:center;flex:none}
+.head h1{font-size:24px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.h1sub{color:var(--omnix-fg-muted);font-weight:400;font-size:15px}
+.head .sub{color:var(--omnix-fg-muted);font-size:13px;margin-top:2px}
+.head-r{display:flex;align-items:center;gap:10px}
+.badge{background:var(--omnix-surface-2);border:1px solid var(--omnix-border);color:var(--omnix-fg-muted);font-size:12px;padding:5px 12px;border-radius:999px}
+.icon-btn{width:38px;height:38px;border-radius:var(--r-lg);border:1px solid var(--omnix-border);background:var(--omnix-surface);color:var(--omnix-fg-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.14s}
+.icon-btn:hover{color:var(--omnix-accent);border-color:var(--omnix-accent)}
+
+/* card base */
+.card,.uploader,.filters,.kpi,.tbl-wrap{background:var(--omnix-surface);border:1px solid var(--omnix-border);border-radius:var(--r-lg)}
+
+/* uploader */
+.uploader{padding:16px;margin-bottom:16px}
+.uploader .row{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch}
+.drop{flex:1;min-width:280px;border:1.5px dashed var(--omnix-border);border-radius:var(--r-lg);padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.14s;background:var(--omnix-surface-2)}
+.drop:hover,.drop.drag{border-color:var(--omnix-accent);background:var(--omnix-accent-soft)}
+.drop-ic{width:44px;height:44px;border-radius:var(--r-xl);background:var(--omnix-accent-soft);color:var(--omnix-accent);display:flex;align-items:center;justify-content:center;flex:none}
+.drop .t1{font-weight:600;font-size:14px}
+.drop .t2{font-size:12px;color:var(--omnix-fg-muted);margin-top:2px}
+.up-actions{display:flex;flex-direction:column;gap:8px;justify-content:center;min-width:230px}
+.ubtn{padding:9px 14px;border-radius:var(--r-lg);border:1px solid var(--omnix-border);background:var(--omnix-surface-2);color:var(--omnix-fg);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:8px;transition:.14s}
+.ubtn:hover{border-color:var(--omnix-accent);color:var(--omnix-accent)}
+.ubtn.primary{background:var(--omnix-accent);color:var(--on-accent);border-color:var(--omnix-accent);font-weight:600}
+.ubtn.primary:hover{filter:brightness(1.06);color:var(--on-accent)}
+.up-status{margin-top:12px;font-size:12.5px;color:var(--omnix-fg-muted);line-height:1.8}
+.up-status:empty{display:none}
+.sync-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.tin{height:38px;padding:0 12px;background:var(--omnix-surface-2);border:1px solid var(--omnix-border);border-radius:var(--r-lg);color:var(--omnix-fg);font-size:13px;font-family:inherit;width:100%}
+.tin:focus{outline:2px solid var(--omnix-accent);outline-offset:1px}
+.save-state{margin-top:8px;font-size:12px;line-height:1.6}
+.save-state:empty{display:none}
+.datainfo{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--omnix-fg-muted)}
+.datainfo b{color:var(--omnix-fg);font-weight:600}
+.mi{display:inline-flex;vertical-align:-.15em}
+.mi.ok{color:var(--omnix-success)} .mi.bad{color:var(--omnix-danger)} .mi.warn{color:var(--omnix-warning)}
+.mi.info{color:var(--omnix-info)} .mi.mut{color:var(--omnix-fg-muted)} .mi.acc{color:var(--omnix-accent)}
+
+/* filters */
+.filters{padding:14px 16px;margin-bottom:20px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:6px;min-width:160px}
+.fg label{font-size:12px;color:var(--omnix-fg-muted);font-weight:600;display:flex;align-items:center;gap:5px}
+.msel{position:relative}
+.msel-btn{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:180px;height:38px;padding:0 12px;background:var(--omnix-surface-2);border:1px solid var(--omnix-border);border-radius:var(--r-lg);color:var(--omnix-fg);font-size:13px;cursor:pointer;user-select:none;transition:.14s}
+.msel-btn:hover{border-color:var(--omnix-accent)}
+.msel-btn .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:230px}
+.msel-btn .arw{color:var(--omnix-fg-muted);display:inline-flex}
+.msel-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:var(--omnix-surface);border:1px solid var(--omnix-border);border-radius:var(--r-lg);padding:6px;min-width:210px;box-shadow:0 6px 20px rgba(19,24,32,.14);display:none;max-height:300px;overflow:auto}
+.msel-pop.open{display:block}
+.msel-head{display:flex;gap:6px;padding:2px 2px 8px;margin-bottom:4px;border-bottom:1px solid var(--omnix-border);position:sticky;top:0;background:var(--omnix-surface);z-index:1}
+.msel-head button{flex:1;padding:6px 8px;font-size:12px;font-weight:600;border:1px solid var(--omnix-border);background:var(--omnix-surface-2);color:var(--omnix-fg-muted);border-radius:var(--r-lg);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;transition:.12s}
+.msel-head button:hover{border-color:var(--omnix-accent);color:var(--omnix-accent)}
+.msel-head button.clr:hover{border-color:var(--omnix-danger);color:var(--omnix-danger)}
+.msel-pop label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--omnix-fg)}
+.msel-pop label:hover{background:var(--omnix-surface-2)}
+.msel-pop input{accent-color:var(--omnix-accent);width:15px;height:15px}
+.btn-reset{height:38px;padding:0 14px;background:transparent;border:1px solid var(--omnix-border);color:var(--omnix-fg-muted);border-radius:var(--r-lg);cursor:pointer;font-size:13px;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:.14s}
+.btn-reset:hover{border-color:var(--omnix-accent);color:var(--omnix-accent)}
+
+/* section titles */
+.sec-title{display:flex;align-items:center;gap:10px;margin:28px 0 14px}
+.sec-ic{width:30px;height:30px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;flex:none}
+.sec-ic.s1{background:var(--omnix-accent-soft);color:var(--omnix-accent)}
+.sec-ic.s2{background:var(--omnix-danger-soft);color:var(--omnix-danger)}
+.sec-title h2{font-size:17px;font-weight:700}
+.sec-title .note{font-size:12px;color:var(--omnix-fg-muted);margin-left:auto}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--gap);margin-bottom:var(--gap)}
+.kpi{padding:16px 18px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--omnix-accent)}
+.kpi.k2::before{background:var(--omnix-success)} .kpi.k3::before{background:var(--omnix-danger)}
+.kpi.k4::before{background:var(--omnix-warning)} .kpi.k5::before{background:var(--omnix-info)}
+.kpi .lab{font-size:12px;color:var(--omnix-fg-muted);margin-bottom:6px}
+.kpi .val{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.kpi .val small{font-size:14px;color:var(--omnix-fg-muted);font-weight:500}
+.kpi .meta{font-size:11px;color:var(--omnix-fg-muted);margin-top:4px}
+
+/* charts */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:var(--gap);margin-bottom:var(--gap)}
+.card{padding:18px}
+.card h3{font-size:14px;font-weight:600;margin-bottom:14px;color:var(--omnix-fg)}
+.card h3 .cnt{color:var(--omnix-fg-muted);font-weight:400;font-size:12px}
+.cbox{position:relative;height:280px}
+.cbox.tall{height:340px}
+
+/* table */
+.tbl-wrap{padding:18px;overflow-x:auto}
+.tbl-wrap h3{font-size:14px;font-weight:600;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:9px 12px;border-bottom:1px solid var(--omnix-border);color:var(--omnix-fg-muted);font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{color:var(--omnix-fg)}
+thead th.num,tbody td.num{text-align:right}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--omnix-border);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--omnix-surface-2)}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600}
+.pill.ok{background:var(--omnix-success-soft);color:var(--omnix-success)}
+.pill.bad{background:var(--omnix-danger-soft);color:var(--omnix-danger)}
+.pill.warn{background:var(--omnix-warning-soft);color:var(--omnix-warning)}
+.pill.sub{background:var(--omnix-accent-soft);color:var(--omnix-accent)}
+.pill.gray{background:var(--omnix-surface-2);color:var(--omnix-fg-muted)}
+.pill.shop{background:var(--omnix-info-soft);color:var(--omnix-info)}
+.pill.shop.moov{background:var(--omnix-accent-soft);color:var(--omnix-accent)}
+.empty{color:var(--omnix-fg-muted);text-align:center;padding:30px}
+.foot{text-align:center;color:var(--omnix-fg-muted);font-size:12px;margin-top:24px;padding-top:16px;border-top:1px solid var(--omnix-border)}
+::-webkit-scrollbar{height:8px;width:8px}::-webkit-scrollbar-thumb{background:var(--omnix-border);border-radius:4px}
+</style>
+<script>(function(){try{var t=localStorage.getItem('nineplus_dashboard_theme');if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="head-l">
+      <div class="logo" data-icon="broadcast" data-size="22"></div>
+      <div>
+        <h1>Live Dashboard <span class="h1sub">— แผน / ยกเลิก / คนแทน</span></h1>
+        <div class="sub">9Plus Intertrade · Shopee Live · อัปโหลดข้อมูลรายเดือนได้เอง</div>
+      </div>
+    </div>
+    <div class="head-r">
+      <div class="badge" id="rangeBadge">—</div>
+      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="สลับธีม"></button>
+    </div>
+  </div>
+
+  <!-- GOOGLE SHEET SYNC -->
+  <div class="uploader" style="margin-top:-6px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div class="drop-ic" style="width:36px;height:36px" data-icon="refresh" data-size="18"></div>
+      <div>
+        <div class="t1">เชื่อมต่อ Google Sheet — ดึงข้อมูลสด (ไม่ต้องอัปโหลด CSV)</div>
+        <div class="t2">ใช้ได้เมื่อชีตถูกตั้งค่าแชร์เป็น <b>“ทุกคนที่มีลิงก์ = ผู้อ่าน”</b> หรือ <b>ไฟล์ → แชร์ → เผยแพร่ต่อเว็บ</b> · ระบบตรวจชนิดแท็บ + ตัดซ้ำอัตโนมัติ</div>
+      </div>
+    </div>
+    <div class="sync-row">
+      <div class="fg" style="flex:2;min-width:260px"><label><span data-icon="tag" data-size="13"></span> Google Sheet ID หรือ ลิงก์</label>
+        <input id="ghId" class="tin" value="1T82JpjU83YCRE7mDsuMz-s5Zv1sZ8Tf9qasU6cFwxkg"></div>
+      <div class="fg" style="min-width:240px;flex:1"><label><span data-icon="calendar" data-size="13"></span> แท็บ (ชื่อ หรือ gid คั่นด้วย ,)</label>
+        <input id="ghGids" class="tin" value="Plan Slot Live, Shopee Live Cancellation" placeholder="เช่น Plan Slot Live, Shopee Live Cancellation"></div>
+      <div class="fg" style="min-width:150px"><label><span data-icon="refresh" data-size="13"></span> ดึงอัตโนมัติ</label>
+        <select id="ghAuto" class="tin" onchange="setupAuto()">
+          <option value="0">ปิด</option><option value="5">ทุก 5 นาที</option><option value="15">ทุก 15 นาที</option><option value="30">ทุก 30 นาที</option><option value="60">ทุก 1 ชม.</option>
+        </select></div>
+      <button class="ubtn primary" style="align-self:flex-end" onclick="syncFromSheet()"><span data-icon="download" data-size="16"></span> ดึงข้อมูลจากชีต</button>
+    </div>
+    <div class="up-status" id="ghStatus"></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <div class="fg">
+      <label><span data-icon="calendar" data-size="13"></span> เดือน</label>
+      <div class="msel" id="msMonth">
+        <div class="msel-btn" onclick="toggleMsel('msMonth')"><span class="txt">ทุกเดือน</span><span class="arw" data-icon="chevron" data-size="14"></span></div>
+        <div class="msel-pop"></div>
+      </div>
+    </div>
+    <div class="fg"><label><span data-icon="store" data-size="13"></span> ร้าน (Shop)</label>
+      <div class="msel" id="msShop"><div class="msel-btn" onclick="toggleMsel('msShop')"><span class="txt">ทุกร้าน</span><span class="arw" data-icon="chevron" data-size="14"></span></div><div class="msel-pop"></div></div>
+    </div>
+    <div class="fg"><label><span data-icon="user" data-size="13"></span> คน (MC / Name)</label>
+      <div class="msel" id="msPerson"><div class="msel-btn" onclick="toggleMsel('msPerson')"><span class="txt">ทุกคน</span><span class="arw" data-icon="chevron" data-size="14"></span></div><div class="msel-pop"></div></div>
+    </div>
+    <div class="fg"><label><span data-icon="tag" data-size="13"></span> เหตุผลยกเลิก</label>
+      <div class="msel" id="msReason"><div class="msel-btn" onclick="toggleMsel('msReason')"><span class="txt">ทุกเหตุผล</span><span class="arw" data-icon="chevron" data-size="14"></span></div><div class="msel-pop"></div></div>
+    </div>
+    <button class="btn-reset" onclick="resetFilters()"><span data-icon="refresh" data-size="14"></span> ล้างตัวกรอง</button>
+  </div>
+
+  <!-- SECTION 1 -->
+  <div class="sec-title">
+    <span class="sec-ic s1" data-icon="broadcast" data-size="18"></span>
+    <h2>ภาพรวมการไลฟ์ (Plan / Slot)</h2>
+    <span class="note" id="s1note">ที่มา: Plan Slot Live</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="lab">จอง (Plan)</div><div class="val" id="kPlan">0</div><div class="meta">slot ที่วางแผน</div></div>
+    <div class="kpi k2"><div class="lab">ไลฟ์จริง (Actual)</div><div class="val" id="kActual">0</div><div class="meta" id="kActualMeta">—</div></div>
+    <div class="kpi k3"><div class="lab">ยกเลิก (Cancel)</div><div class="val" id="kCancel">0</div><div class="meta" id="kCancelMeta">—</div></div>
+    <div class="kpi k4"><div class="lab">อัตราไลฟ์สำเร็จ</div><div class="val" id="kFulfill">0<small>%</small></div><div class="meta">Actual ÷ Plan</div></div>
+    <div class="kpi k5"><div class="lab">อัตรายกเลิก</div><div class="val" id="kCancelRate">0<small>%</small></div><div class="meta">Cancel ÷ Plan</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>แนวโน้มรายเดือน — จอง / ไลฟ์จริง / ยกเลิก</h3><div class="cbox"><canvas id="chMonth"></canvas></div></div>
+    <div class="card"><h3>อัตราไลฟ์สำเร็จรายเดือน (%)</h3><div class="cbox"><canvas id="chFulfill"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-bottom:var(--gap)"><h3>รายคน (MC) — จอง vs ไลฟ์จริง <span class="cnt" id="mcCnt"></span></h3><div class="cbox tall"><canvas id="chMc"></canvas></div></div>
+  <div class="tbl-wrap" style="margin-bottom:8px">
+    <h3>ตารางสรุปรายคน</h3>
+    <table id="tblMc"><thead><tr>
+      <th data-k="mc">MC</th><th class="num" data-k="plan">จอง</th><th class="num" data-k="cancel">ยกเลิก</th>
+      <th class="num" data-k="actual">ไลฟ์จริง</th><th class="num" data-k="fulfill">สำเร็จ %</th><th class="num" data-k="crate">ยกเลิก %</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="sec-title">
+    <span class="sec-ic s2" data-icon="ban" data-size="18"></span>
+    <h2>วิเคราะห์การยกเลิก & คนไลฟ์แทน</h2>
+    <span class="note" id="s2note">ที่มา: Live Cancellation (event log)</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi k3"><div class="lab">ยกเลิกทั้งหมด</div><div class="val" id="cTotal">0</div><div class="meta">ครั้ง</div></div>
+    <div class="kpi k5"><div class="lab">มีคนไลฟ์แทน</div><div class="val" id="cSub">0<small>%</small></div><div class="meta" id="cSubMeta">—</div></div>
+    <div class="kpi k4"><div class="lab">เหตุผลอันดับ 1</div><div class="val" id="cTopReason" style="font-size:18px">—</div><div class="meta" id="cTopReasonMeta">—</div></div>
+    <div class="kpi"><div class="lab">ยกเลิกบ่อยสุด (คน)</div><div class="val" id="cTopPerson" style="font-size:18px">—</div><div class="meta" id="cTopPersonMeta">—</div></div>
+    <div class="kpi k2"><div class="lab">ช่วงเวลาที่ยกเลิกบ่อย</div><div class="val" id="cTopSlot" style="font-size:18px">—</div><div class="meta" id="cTopSlotMeta">—</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>สัดส่วนเหตุผลการยกเลิก</h3><div class="cbox"><canvas id="chReason"></canvas></div></div>
+    <div class="card"><h3>จำนวนยกเลิกรายเดือน (แยกร้าน)</h3><div class="cbox"><canvas id="chCancelMonth"></canvas></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>ยกเลิกตามช่วงเวลา (Time Slot)</h3><div class="cbox"><canvas id="chSlot"></canvas></div></div>
+    <div class="card"><h3>ยกเลิกรายคน (Top 15)</h3><div class="cbox tall"><canvas id="chPerson"></canvas></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>คนไลฟ์แทน — รับงานแทนมากสุด</h3><div class="cbox"><canvas id="chSubber"></canvas></div></div>
+    <div class="card"><h3>เหตุผลยกเลิก × ร้าน</h3><div class="cbox"><canvas id="chReasonShop"></canvas></div></div>
+  </div>
+  <div class="tbl-wrap">
+    <h3>ตารางรายการยกเลิก <span class="cnt" id="logCnt" style="color:var(--sub);font-weight:400;font-size:12px"></span></h3>
+    <table id="tblLog"><thead><tr>
+      <th data-k="month">เดือน</th><th data-k="date">วันที่</th><th data-k="timing">ช่วงเวลา</th>
+      <th data-k="name">คนที่ยกเลิก</th><th data-k="shop">ร้าน</th><th data-k="reason">เหตุผล</th>
+      <th data-k="substitute">คนแทน</th><th data-k="note">หมายเหตุ</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="foot">สร้างโดย Claude · Dashboard แบบ interactive · อัปโหลด CSV รายเดือนได้เอง แล้วกดดาวน์โหลดเพื่อเก็บเวอร์ชันล่าสุด</div>
+</div>
+
+<script>
+let RAW = /*DATA_START*/{"plan": [{"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC NAMFHA", "plan": 32, "cancel": 9, "actual": 23}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CT ANN", "plan": 18, "cancel": 0, "actual": 18}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "MM NILE", "plan": 10, "cancel": 0, "actual": 10}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC KWAN", "plan": 20, "cancel": 1, "actual": 19}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC ZAM", "plan": 10, "cancel": 6, "actual": 4}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC LEAD", "plan": 14, "cancel": 3, "actual": 11}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP TANGMO", "plan": 35, "cancel": 0, "actual": 35}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP FRING", "plan": 24, "cancel": 1, "actual": 23}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AON", "plan": 16, "cancel": 0, "actual": 16}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AUM", "plan": 13, "cancel": 2, "actual": 11}, {"month": "JAN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS DAOJAI", "plan": 11, "cancel": 0, "actual": 11}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC NAMFHA", "plan": 27, "cancel": 3, "actual": 24}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CT ANN", "plan": 20, "cancel": 3, "actual": 17}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "MM NILE", "plan": 9, "cancel": 1, "actual": 8}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC KWAN", "plan": 24, "cancel": 2, "actual": 22}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC ZAM", "plan": 10, "cancel": 3, "actual": 7}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC LEAD", "plan": 11, "cancel": 3, "actual": 8}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP TANGMO", "plan": 32, "cancel": 1, "actual": 31}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP FRING", "plan": 25, "cancel": 4, "actual": 21}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AON", "plan": 16, "cancel": 1, "actual": 15}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AUM", "plan": 16, "cancel": 7, "actual": 9}, {"month": "FEB2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS DAOJAI", "plan": 12, "cancel": 1, "actual": 11}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC NAMFHA", "plan": 33, "cancel": 9, "actual": 24}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CT ANN", "plan": 22, "cancel": 3, "actual": 19}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "MM NILE", "plan": 10, "cancel": 2, "actual": 8}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC KWAN", "plan": 25, "cancel": 5, "actual": 20}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC ZAM", "plan": 9, "cancel": 3, "actual": 6}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC LEAD", "plan": 10, "cancel": 3, "actual": 7}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP TANGMO", "plan": 33, "cancel": 1, "actual": 32}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP FRING", "plan": 24, "cancel": 0, "actual": 24}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AON", "plan": 13, "cancel": 0, "actual": 13}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AUM", "plan": 15, "cancel": 0, "actual": 15}, {"month": "MAR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS DAOJAI", "plan": 13, "cancel": 0, "actual": 13}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC NAMFHA", "plan": 23, "cancel": 5, "actual": 18}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CT ANN", "plan": 11, "cancel": 0, "actual": 11}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "MM NILE", "plan": 3, "cancel": 1, "actual": 2}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC KWAN", "plan": 23, "cancel": 2, "actual": 21}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC ZAM", "plan": 5, "cancel": 3, "actual": 2}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC LEAD", "plan": 7, "cancel": 0, "actual": 7}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP TANGMO", "plan": 30, "cancel": 3, "actual": 27}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP FRING", "plan": 43, "cancel": 0, "actual": 43}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AON", "plan": 12, "cancel": 0, "actual": 12}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AUM", "plan": 15, "cancel": 8, "actual": 7}, {"month": "APR2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS DAOJAI", "plan": 14, "cancel": 0, "actual": 14}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC NAMFHA", "plan": 25.5, "cancel": 1, "actual": 24.5}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CT ANN", "plan": 20, "cancel": 4, "actual": 16}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC KWAN", "plan": 21, "cancel": 5, "actual": 16}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC ZAM", "plan": 7, "cancel": 2, "actual": 5}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC LEAD", "plan": 12, "cancel": 3, "actual": 9}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP TANGMO", "plan": 30, "cancel": 0, "actual": 30}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP FRING", "plan": 38, "cancel": 0, "actual": 38}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AON", "plan": 13.5, "cancel": 0, "actual": 13.5}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AUM", "plan": 16, "cancel": 0, "actual": 16}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS DAOJAI", "plan": 9, "cancel": 0, "actual": 9}, {"month": "MAY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS SOON", "plan": 5, "cancel": 0, "actual": 5}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC NAMFHA", "plan": 27, "cancel": -2, "actual": 29}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CT ANN", "plan": 19, "cancel": 2, "actual": 16}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC KWAN", "plan": 21, "cancel": 3, "actual": 18}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC ZAM", "plan": 7, "cancel": 3, "actual": 4}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC LEAD", "plan": 18, "cancel": -4, "actual": 22}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP TANGMO", "plan": 29, "cancel": 0, "actual": 29}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP FRING", "plan": 29, "cancel": -6, "actual": 35}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AON", "plan": 20, "cancel": 0, "actual": 20}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AUM", "plan": 16, "cancel": -1, "actual": 17}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS DAOJAI", "plan": 8, "cancel": -5, "actual": 13}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS SOON", "plan": 13, "cancel": -8, "actual": 21}, {"month": "JUN2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "NAMTAN", "plan": 14, "cancel": -1, "actual": 15}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC NAMFHA", "plan": 24, "cancel": -1.5, "actual": 25.5}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CT ANN", "plan": 20, "cancel": 12, "actual": 8}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC KWAN", "plan": 22, "cancel": 8, "actual": 14}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC ZAM", "plan": 8, "cancel": 5, "actual": 3}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC LEAD", "plan": 17, "cancel": 2, "actual": 15}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP TANGMO", "plan": 29, "cancel": 0, "actual": 29}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP FRING", "plan": 35, "cancel": -15, "actual": 50}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AON", "plan": 13, "cancel": 0, "actual": 13}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AUM", "plan": 22, "cancel": 6, "actual": 16}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS DAOJAI", "plan": 14, "cancel": 1, "actual": 13}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS SOON", "plan": 20, "cancel": -5, "actual": 25}, {"month": "JULY2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "NAMTAN", "plan": 20, "cancel": 0, "actual": 20}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC NAMFHA", "plan": 20, "cancel": 2, "actual": 18}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CT ANN", "plan": 22, "cancel": 5, "actual": 17}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC KWAN", "plan": 5, "cancel": 4, "actual": 1}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC ZAM", "plan": 9, "cancel": 8, "actual": 1}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "PC LEAD", "plan": 16, "cancel": 6, "actual": 10}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP TANGMO", "plan": 35, "cancel": 0, "actual": 35}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "OP FRING", "plan": 40, "cancel": -8, "actual": 48}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AON", "plan": 15, "cancel": 1, "actual": 14}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS AUM", "plan": 20, "cancel": 8, "actual": 22}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS DAOJAI", "plan": 12, "cancel": 0, "actual": 12}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "CS SOON", "plan": 23, "cancel": -1, "actual": 24}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "NAMTAN", "plan": 35, "cancel": 8, "actual": 27}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "FHASAII_PT", "plan": 12, "cancel": 2, "actual": 10}, {"month": "AUG2026", "platform": "SHOPEE", "shop": "ELOOPTH", "mc": "FIA_PT", "plan": 11, "cancel": -3, "actual": 14}], "cancel": [{"month": "JAN2026", "platform": "SHOPEE", "date": "3/1/2026", "day": 3, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "6/1/2026", "day": 6, "timing": "14:00 - 16:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "8/1/2026", "day": 8, "timing": "20:00 - 22:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "9/1/2026", "day": 9, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "9/1/2026", "day": 9, "timing": "10:00 - 12:00", "name": "OP TANGMO", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "9/1/2026", "day": 9, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "11/1/2026", "day": 11, "timing": "14:00 - 16:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "12/1/2026", "day": 12, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "16/1/2026", "day": 16, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "16/1/2026", "day": 16, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ลืมตารางไลฟ์", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "18/1/2026", "day": 18, "timing": "16:00 - 18:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "18/1/2026", "day": 18, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "18/1/2026", "day": 18, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "19/1/2026", "day": 19, "timing": "10:00 - 12:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "18/1/2026", "day": 18, "timing": "20:00 - 22:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ลืมตารางไลฟ์", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "20/1/2026", "day": 20, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "21/1/2026", "day": 21, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "23/1/2026", "day": 23, "timing": "16:00 - 18:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "23/1/2026", "day": 23, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "27/1/2026", "day": 27, "timing": "16:00 - 18:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "30/1/2026", "day": 30, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "30/1/2026", "day": 30, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "31/1/2026", "day": 31, "timing": "18:00 - 20:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "JAN2026", "platform": "SHOPEE", "date": "31/1/2026", "day": 31, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "3/2/2026", "day": 3, "timing": "16:00 - 18:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "5/2/2026", "day": 5, "timing": "12:00 - 14:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "7/2/2026", "day": 7, "timing": "18:00 - 20:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "5/2/2026", "day": 5, "timing": "20:00 - 22:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "9/2/2026", "day": 9, "timing": "14:00 - 16:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "PC NAMFHA", "note": "", "has_sub": 1}, {"month": "FEB2026", "platform": "SHOPEE", "date": "9/2/2026", "day": 9, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "11/2/2026", "day": 11, "timing": "08:00 - 10:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "11/2/2026", "day": 11, "timing": "10:00 - 12:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "13/2/2026", "day": 13, "timing": "14:00 - 16:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "13/2/2026", "day": 13, "timing": "16:00 - 18:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "14/2/2026", "day": 14, "timing": "18:00 - 20:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "14/2/2026", "day": 14, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "14/2/2026", "day": 14, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "16/2/2026", "day": 16, "timing": "12:00 - 14:00", "name": "CS DAOJAI", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "18/2/2026", "day": 18, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "19/2/2026", "day": 19, "timing": "22:00 - 00:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "20/2/2026", "day": 20, "timing": "18:00 - 20:00", "name": "CS AON", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "20/2/2026", "day": 20, "timing": "22:00 - 00:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "22/2/2026", "day": 22, "timing": "12:00 - 14:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "PC LEAD", "note": "", "has_sub": 1}, {"month": "FEB2026", "platform": "SHOPEE", "date": "22/2/2026", "day": 22, "timing": "16:00 - 18:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "23/2/2026", "day": 23, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "22/2/2026", "day": 22, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "24/2/2026", "day": 24, "timing": "22:00 - 00:00", "name": "MM NILE", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "PC KWAN", "note": "", "has_sub": 1}, {"month": "FEB2026", "platform": "SHOPEE", "date": "25/2/2026", "day": 25, "timing": "16:00 - 18:00", "name": "OP TANGMO", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "FEB2026", "platform": "SHOPEE", "date": "26/2/2026", "day": 26, "timing": "14:00 - 16:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "26/2/2026", "day": 26, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "26/2/2026", "day": 26, "timing": "20:00 - 22:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ฉุกเฉินไฟดับ ติดฝน", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "27/2/2026", "day": 27, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "27/2/2026", "day": 27, "timing": "22:00 - 00:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "27/2/2026", "day": 27, "timing": "20:00 - 22:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "FEB2026", "platform": "SHOPEE", "date": "28/2/2026", "day": 28, "timing": "12:00 - 14:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "1/3/2026", "day": 1, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อุปกรณ์มีปัญหา", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "5/3/2026", "day": 5, "timing": "12:00 - 14:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "5/3/2026", "day": 5, "timing": "20:00 - 22:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "6/3/2026", "day": 6, "timing": "20:00 - 22:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "7/3/2026", "day": 7, "timing": "14:00 - 16:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "8/3/2026", "day": 8, "timing": "08:00 - 10:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "8/3/2026", "day": 8, "timing": "12:00 - 14:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "8/3/2026", "day": 8, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "9/3/2026", "day": 9, "timing": "10:00 - 12:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "8/3/2026", "day": 8, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ลืมตารางไลฟ์", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "9/3/2026", "day": 9, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "10/3/2026", "day": 10, "timing": "16:00 - 18:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "14/3/2026", "day": 14, "timing": "20:00 - 22:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "15/3/2026", "day": 15, "timing": "14:00 - 16:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "18/3/2026", "day": 18, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "MAR2026", "platform": "SHOPEE", "date": "20/3/2026", "day": 20, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "21/3/2026", "day": 21, "timing": "16:00 - 18:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "23/3/2026", "day": 23, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "23/3/2026", "day": 23, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "23/3/2026", "day": 23, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "25/3/2026", "day": 25, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "MAR2026", "platform": "SHOPEE", "date": "26/3/2026", "day": 26, "timing": "20:00 - 22:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "28/3/2026", "day": 28, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "30/3/2026", "day": 30, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAR2026", "platform": "SHOPEE", "date": "31/3/2026", "day": 31, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "1/4/2026", "day": 1, "timing": "14:00 - 16:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "1/4/2026", "day": 1, "timing": "16:00 - 18:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "1/4/2026", "day": 1, "timing": "12:00 - 14:00", "name": "CS AON", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "2/4/2026", "day": 2, "timing": "18:00 - 20:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "5/4/2026", "day": 5, "timing": "14:00 - 16:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "CS AON", "note": "", "has_sub": 1}, {"month": "APR2026", "platform": "SHOPEE", "date": "6/4/2026", "day": 6, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "8/4/2026", "day": 8, "timing": "18:00 - 20:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "9/4/2026", "day": 9, "timing": "18:00 - 20:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "10/4/2026", "day": 10, "timing": "12:00 - 14:00", "name": "CS DAOJAI", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "11/4/2026", "day": 11, "timing": "08:00 - 10:00", "name": "OP TANGMO", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "11/4/2026", "day": 11, "timing": "10:00 - 12:00", "name": "OP TANGMO", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "11/4/2026", "day": 11, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "14/4/2026", "day": 14, "timing": "10:00 - 12:00", "name": "CS DAOJAI", "shop": "ELOOPTH", "reason": "ฉุกเฉินไฟดับ ติดฝน", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "15/4/2026", "day": 15, "timing": "20:00 - 22:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "CT ANN", "note": "", "has_sub": 1}, {"month": "APR2026", "platform": "SHOPEE", "date": "15/4/2026", "day": 15, "timing": "22:00 - 00:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "PUNCH", "note": "", "has_sub": 1}, {"month": "APR2026", "platform": "SHOPEE", "date": "17/4/2026", "day": 17, "timing": "18:00 - 20:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "18/4/2026", "day": 18, "timing": "08:00 - 10:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อุปกรณ์มีปัญหา", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "20/4/2026", "day": 20, "timing": "10:00 - 12:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "20/4/2026", "day": 20, "timing": "16:00 - 18:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "20/4/2026", "day": 20, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "21/4/2026", "day": 21, "timing": "12:00 - 14:00", "name": "CS AON", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "22/4/2026", "day": 22, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "23/4/2026", "day": 23, "timing": "18:00 - 20:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "24/4/2026", "day": 24, "timing": "14:00 - 16:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "24/4/2026", "day": 24, "timing": "16:00 - 18:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "26/4/2026", "day": 26, "timing": "18:00 - 20:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "Internet มีปัญหา", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "APR2026", "platform": "SHOPEE", "date": "26/4/2026", "day": 26, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "27/4/2026", "day": 27, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "28/4/2026", "day": 28, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "Internet มีปัญหา", "substitute": "", "note": "", "has_sub": 0}, {"month": "APR2026", "platform": "SHOPEE", "date": "28/4/2026", "day": 28, "timing": "10:00 - 12:00", "name": "OP TANGMO", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "APR2026", "platform": "SHOPEE", "date": "29/4/2026", "day": 29, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "Internet มีปัญหา", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAY2026", "platform": "SHOPEE", "date": "2/5/2026", "day": 2, "timing": "08:00 - 10:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAY2026", "platform": "SHOPEE", "date": "3/5/2026", "day": 3, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "6/5/2026", "day": 6, "timing": "22:00 - 00:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "8/5/2026", "day": 8, "timing": "22:00 - 00:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "Internet มีปัญหา", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAY2026", "platform": "SHOPEE", "date": "17/5/2026", "day": 17, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAY2026", "platform": "SHOPEE", "date": "18/5/2026", "day": 18, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAY2026", "platform": "SHOPEE", "date": "19/5/2026", "day": 19, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "20/5/2026", "day": 20, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "21/5/2026", "day": 21, "timing": "14:00 - 16:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAY2026", "platform": "SHOPEE", "date": "21/5/2026", "day": 21, "timing": "16:00 - 18:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "MAY2026", "platform": "SHOPEE", "date": "21/5/2026", "day": 21, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "27/5/2026", "day": 27, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "22/5/2026", "day": 22, "timing": "22:00 - 00:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "23/5/2026", "day": 23, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "24/5/2026", "day": 24, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "29/5/2026", "day": 29, "timing": "22:00 - 00:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "25/5/2026", "day": 25, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "PC LEAD", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "25/5/2026", "day": 25, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "26/5/2026", "day": 26, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "29/5/2026", "day": 29, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "อุปกรณ์มีปัญหา", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "31/5/2026", "day": 31, "timing": "08:00 - 10:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "MAY2026", "platform": "SHOPEE", "date": "31/5/2026", "day": 31, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "1/6/2026", "day": 1, "timing": "20:00 - 22:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS AON", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "4/6/2026", "day": 4, "timing": "20:00 - 22:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "4/6/2026", "day": 4, "timing": "22:00 - 00:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "7/6/2026", "day": 7, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "NAMTAN", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "9/6/2026", "day": 9, "timing": "12:00 - 14:00", "name": "CS AON", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "11/6/2026", "day": 11, "timing": "14:00 - 16:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "11/6/2026", "day": 11, "timing": "16:00 - 18:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "11/6/2026", "day": 11, "timing": "12:00 - 14:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "13/6/2026", "day": 13, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "14/6/2026", "day": 14, "timing": "10:00 - 12:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "14/6/2026", "day": 14, "timing": "00:00 - 02:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "ลืมตารางไลฟ์", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "15/6/2026", "day": 15, "timing": "08:00 - 10:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "CS DAOJAI", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "15/6/2026", "day": 15, "timing": "06:00 - 08:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "16/6/2026", "day": 16, "timing": "14:00 - 16:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "17/6/2026", "day": 17, "timing": "20:00 - 22:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "17/6/2026", "day": 17, "timing": "22:00 - 00:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "27/6/2026", "day": 27, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "18/6/2026", "day": 18, "timing": "20:00 - 22:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "21/6/2026", "day": 21, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "21/6/2026", "day": 21, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "NAMTAN", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "26/6/2026", "day": 26, "timing": "22:00 - 00:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "27/6/2026", "day": 27, "timing": "20:00 - 22:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "27/6/2026", "day": 27, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "28/6/2026", "day": 28, "timing": "14:00 - 16:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "28/6/2026", "day": 28, "timing": "00:00 - 02:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JUN2026", "platform": "SHOPEE", "date": "29/6/2026", "day": 29, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "JUN2026", "platform": "SHOPEE", "date": "29/6/2026", "day": 29, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "2/7/2026", "day": 2, "timing": "22:00 - 00:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "4/7/2026", "day": 4, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "3/7/2026", "day": 3, "timing": "10:00 - 12:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "5/7/2026", "day": 5, "timing": "02:00 - 04:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "5/7/2026", "day": 5, "timing": "10:00 - 12:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "5/7/2026", "day": 5, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "5/7/2026", "day": 5, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "5/7/2026", "day": 5, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "9/7/2026", "day": 9, "timing": "06:00 - 08:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "9/7/2026", "day": 9, "timing": "12:00 - 14:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "9/7/2026", "day": 9, "timing": "22:00 - 00:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "11/7/2026", "day": 11, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "12/7/2026", "day": 12, "timing": "14:00 - 16:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "14/7/2026", "day": 14, "timing": "12:00 - 14:00", "name": "CS AON", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "16/7/2026", "day": 16, "timing": "14:00 - 16:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "PC LEAD", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "16/7/2026", "day": 16, "timing": "16:00 - 18:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "16/7/2026", "day": 16, "timing": "20:00 - 22:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "16/7/2026", "day": 16, "timing": "22:00 - 00:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "18/7/2026", "day": 18, "timing": "00:00 - 02:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "NAMTAN", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "19/7/2026", "day": 19, "timing": "10:00 - 12:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "19/7/2026", "day": 19, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "20/7/2026", "day": 20, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "NAMTAN", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "21/7/2026", "day": 21, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "PC LEAD", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "23/7/2026", "day": 23, "timing": "22:00 - 00:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "26/7/2026", "day": 26, "timing": "10:00 - 12:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "NAMTAN", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "20/7/2026", "day": 20, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "21/7/2026", "day": 21, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "NAMTAN", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "22/7/2026", "day": 22, "timing": "20:00 - 22:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "23/7/2026", "day": 23, "timing": "12:00 - 14:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "NAMTAN", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "23/7/2026", "day": 23, "timing": "10:00 - 12:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "23/7/2026", "day": 23, "timing": "20:00 - 22:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "24/7/2026", "day": 24, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "26/7/2026", "day": 26, "timing": "00:00 - 02:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "26/7/2026", "day": 26, "timing": "06:00 - 08:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "26/7/2026", "day": 26, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "25/7/2026", "day": 25, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "27/7/2026", "day": 27, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "28/7/2026", "day": 28, "timing": "18:00 - 20:00", "name": "CS SOON", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS AUM", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "28/7/2026", "day": 28, "timing": "22:00 - 00:00", "name": "CS SOON", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "28/7/2026", "day": 28, "timing": "00:00 - 02:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "28/7/2026", "day": 28, "timing": "14:00 - 16:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "28/7/2026", "day": 28, "timing": "18:00 - 20:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "28/7/2026", "day": 28, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "29/7/2026", "day": 29, "timing": "20:00 - 22:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "PC NAMFHA", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "29/7/2026", "day": 29, "timing": "16:00 - 18:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "29/7/2026", "day": 29, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "ลืมตารางไลฟ์", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "29/7/2026", "day": 29, "timing": "22:00 - 00:00", "name": "CS DAOJAI", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "30/7/2026", "day": 30, "timing": "12:00 - 14:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "JULY2026", "platform": "SHOPEE", "date": "30/7/2026", "day": 30, "timing": "20:00 - 22:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "30/7/2026", "day": 30, "timing": "22:00 - 00:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "JULY2026", "platform": "SHOPEE", "date": "31/7/2026", "day": 31, "timing": "12:00 - 14:00", "name": "CS DAOJAI", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "1/8/2026", "day": 1, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "1/8/2026", "day": 1, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "2/8/2026", "day": 2, "timing": "00:00 - 02:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "NAMTAN", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "2/8/2026", "day": 2, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "3/8/2026", "day": 3, "timing": "12:00 - 14:00", "name": "CS AON", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "ช่างล้างแอร์", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "3/8/2026", "day": 3, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "4/8/2026", "day": 4, "timing": "14:00 - 16:00", "name": "NAMTAN", "shop": "MOOVTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "4/8/2026", "day": 4, "timing": "20:00 - 22:00", "name": "CS BALLY", "shop": "MOOVTH", "reason": "ฉุกเฉินไฟดับ ติดฝน", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "5/8/2026", "day": 5, "timing": "10:00 - 12:00", "name": "NAMTAN", "shop": "MOOVTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "5/8/2026", "day": 5, "timing": "14:00 - 16:00", "name": "NAMTAN", "shop": "MOOVTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "5/8/2026", "day": 5, "timing": "18:00 - 20:00", "name": "CS SOON", "shop": "ELOOPTH", "reason": "ฉุกเฉินไฟดับ ติดฝน", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "6/8/2026", "day": 6, "timing": "22:00 - 00:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "8/8/2026", "day": 8, "timing": "14:00 - 16:00", "name": "NAMTAN", "shop": "MOOVTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "9/8/2026", "day": 9, "timing": "14:00 - 16:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "9/8/2026", "day": 9, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "9/8/2026", "day": 9, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "อุปกรณ์มีปัญหา", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "8/8/2026", "day": 8, "timing": "06:00 - 08:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "9/8/2026", "day": 9, "timing": "06:00 - 08:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ลืมตารางไลฟ์", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "7/8/2026", "day": 7, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "PC NAMFHA", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "10/8/2026", "day": 10, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "PC LEAD", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "11/8/2026", "day": 11, "timing": "22:00 - 00:00", "name": "PC KWAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "PC NAMFHA", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "11/8/2026", "day": 11, "timing": "00:00 - 02:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "11/8/2026", "day": 11, "timing": "08:00 - 10:00", "name": "FHASAII_PT", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "12/8/2026", "day": 12, "timing": "18:00 - 20:00", "name": "CS SOON", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "12/8/2026", "day": 12, "timing": "14:00 - 16:00", "name": "NAMTAN", "shop": "MOOVTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "12/8/2026", "day": 12, "timing": "20:00 - 22:00", "name": "OP FRING", "shop": "MOOVTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "13/8/2026", "day": 13, "timing": "18:00 - 20:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "14/8/2026", "day": 14, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "16/8/2026", "day": 16, "timing": "06:00 - 08:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "อุปกรณ์มีปัญหา", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "16/8/2026", "day": 16, "timing": "14:00 - 16:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อุปกรณ์มีปัญหา", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "17/8/2026", "day": 17, "timing": "06:00 - 08:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "อุปกรณ์มีปัญหา", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "16/8/2026", "day": 16, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "17/8/2026", "day": 17, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "18/8/2026", "day": 18, "timing": "22:00 - 00:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "19/8/2026", "day": 19, "timing": "22:00 - 00:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "17/8/2026", "day": 17, "timing": "22:00 - 00:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "17/8/2026", "day": 17, "timing": "20:00 - 22:00", "name": "CS BALLY", "shop": "MOOVTH", "reason": "ฉุกเฉินไฟดับ ติดฝน", "substitute": "PUNCH", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "20/8/2026", "day": 20, "timing": "14:00 - 16:00", "name": "NAMTAN", "shop": "MOOVTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "20/8/2026", "day": 20, "timing": "18:00 - 20:00", "name": "PUNCH", "shop": "MOOVTH", "reason": "อื่นๆ", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "20/8/2026", "day": 20, "timing": "22:00 - 00:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "21/8/2026", "day": 21, "timing": "22:00 - 00:00", "name": "CS AUM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "21/8/2026", "day": 21, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "22/8/2026", "day": 22, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "22/8/2026", "day": 22, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "21/8/2026", "day": 21, "timing": "20:00 - 22:00", "name": "PUNCH", "shop": "MOOVTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "21/8/2026", "day": 21, "timing": "22:00 - 00:00", "name": "NAMTAN", "shop": "MOOVTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "22/8/2026", "day": 22, "timing": "20:00 - 22:00", "name": "PUNCH", "shop": "MOOVTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "24/8/2026", "day": 24, "timing": "08:00 - 10:00", "name": "PUNCH", "shop": "MOOVTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "25/8/2026", "day": 25, "timing": "00:00 - 02:00", "name": "PUNCH", "shop": "MOOVTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "23/8/2026", "day": 23, "timing": "08:00 - 10:00", "name": "NOODANG", "shop": "MOOVTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "23/8/2026", "day": 23, "timing": "16:00 - 18:00", "name": "OP FRING", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "23/8/2026", "day": 23, "timing": "18:00 - 20:00", "name": "NAMTAN", "shop": "ELOOPTH", "reason": "อาการป่วย", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "23/8/2026", "day": 23, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "24/8/2026", "day": 24, "timing": "08:00 - 10:00", "name": "PC NAMFHA", "shop": "ELOOPTH", "reason": "ติดงาน", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "25/8/2026", "day": 25, "timing": "16:00 - 18:00", "name": "FHASAII_PT", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "FIA_PT", "note": "คุณตาเสีย", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "26/8/2026", "day": 26, "timing": "20:00 - 22:00", "name": "CT ANN", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "PC NAMFHA", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "25/8/2026", "day": 25, "timing": "14:00 - 16:00", "name": "NAMTAN", "shop": "MOOVTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "26/8/2026", "day": 26, "timing": "14:00 - 16:00", "name": "NAMTAN", "shop": "MOOVTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "30/8/2026", "day": 30, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "OP FRING", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "30/8/2026", "day": 30, "timing": "00:00 - 02:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "29/8/2026", "day": 29, "timing": "20:00 - 22:00", "name": "PC LEAD", "shop": "ELOOPTH", "reason": "ไปต่างจังหวัด", "substitute": "CS SOON", "note": "", "has_sub": 1}, {"month": "AUG2026", "platform": "SHOPEE", "date": "29/8/2026", "day": 29, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}, {"month": "AUG2026", "platform": "SHOPEE", "date": "30/8/2026", "day": 30, "timing": "22:00 - 00:00", "name": "PC ZAM", "shop": "ELOOPTH", "reason": "ติดธุระส่วนตัว", "substitute": "", "note": "", "has_sub": 0}]}/*DATA_END*/;
+const ORIGINAL = JSON.parse(JSON.stringify(RAW));
+
+/* ---------- AUTO-SAVE (บันทึกข้อมูลที่อัปโหลดอัตโนมัติในเบราว์เซอร์) ---------- */
+const LSKEY='nineplus_live_dashboard_v1';
+function storageAvailable(){try{const t='__t';localStorage.setItem(t,'1');localStorage.removeItem(t);return true;}catch(e){return false;}}
+const HAS_LS=storageAvailable();
+function saveData(){
+  if(!HAS_LS)return false;
+  try{localStorage.setItem(LSKEY,JSON.stringify({v:1,savedAt:Date.now(),plan:RAW.plan,cancel:RAW.cancel}));updateSaveState();return true;}
+  catch(e){return false;}
+}
+function loadSaved(){
+  if(!HAS_LS)return null;
+  try{const s=localStorage.getItem(LSKEY);if(!s)return null;const o=JSON.parse(s);if(o&&Array.isArray(o.plan)&&Array.isArray(o.cancel))return o;}catch(e){}
+  return null;
+}
+function updateSaveState(){
+  const el=document.getElementById('saveState'); if(!el)return;
+  if(!HAS_LS){el.innerHTML=mi('warning','warn')+' เบราว์เซอร์นี้ไม่รองรับบันทึกอัตโนมัติ (มักเกิดเมื่อเปิดไฟล์แบบ file:// บางเบราว์เซอร์) — ใช้ปุ่ม “ดาวน์โหลด Dashboard + ข้อมูลล่าสุด” เพื่อเก็บข้อมูลแทน';el.style.color='var(--warn)';return;}
+  const o=loadSaved();
+  if(o){const d=new Date(o.savedAt),p=n=>(''+n).padStart(2,'0');
+    el.innerHTML=mi('check','ok')+' <b style="color:var(--omnix-success)">บันทึกอัตโนมัติแล้ว</b> · ล่าสุด '+p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes())+' — เปิดไฟล์นี้อีกครั้งบนเบราว์เซอร์เดิม ข้อมูลจะอยู่ครบ';el.style.color='var(--sub)';}
+  else{el.innerHTML=mi('info','mut')+' ยังไม่มีข้อมูลที่บันทึกอัตโนมัติ — เมื่ออัปโหลดไฟล์ ระบบจะบันทึกให้เองทันที';el.style.color='var(--mut)';}
+}
+
+/* ---- month meta (dynamic, supports future months) ---- */
+const MABBR={JAN:['ม.ค.',0],FEB:['ก.พ.',1],MAR:['มี.ค.',2],APR:['เม.ย.',3],MAY:['พ.ค.',4],JUN:['มิ.ย.',5],JUL:['ก.ค.',6],JULY:['ก.ค.',6],AUG:['ส.ค.',7],SEP:['ก.ย.',8],SEPT:['ก.ย.',8],OCT:['ต.ค.',9],NOV:['พ.ย.',10],DEC:['ธ.ค.',11]};
+function mkey(code){const m=String(code).toUpperCase().match(/^([A-Z]+)(\d{4})$/);if(!m)return{lab:code,y:9999,i:99};const a=MABBR[m[1]]||[m[1],50];return{lab:a[0],y:+m[2],i:a[1]};}
+let MO=[], ML={};
+function rebuildMonthMeta(){
+  const set=new Set([...RAW.plan.map(r=>r.month),...RAW.cancel.map(r=>r.month)]);
+  MO=[...set].sort((a,b)=>{const A=mkey(a),B=mkey(b);return A.y-B.y||A.i-B.i;});
+  ML={}; MO.forEach(c=>ML[c]=mkey(c).lab);
+}
+
+/* ===== OMNIX icons (SVG, currentColor) ===== */
+const ICONS={
+ upload:'<path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/>',
+ download:'<path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M5 19h14"/>',
+ refresh:'<path d="M4 12a8 8 0 0 1 13.7-5.7L20 8"/><path d="M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.7 5.7L4 16"/><path d="M4 20v-4h4"/>',
+ check:'<path d="M20 6L9 17l-5-5"/>',
+ x:'<path d="M6 6l12 12M18 6L6 18"/>',
+ chevron:'<path d="M6 9l6 6 6-6"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+ moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+ broadcast:'<circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M6 6a8.5 8.5 0 0 0 0 12M18 6a8.5 8.5 0 0 1 0 12"/>',
+ ban:'<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+ warning:'<path d="M12 3l9 16H3z"/><path d="M12 10v4"/><path d="M12 17h.01"/>',
+ info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>',
+ chart:'<path d="M4 20h16"/><path d="M7 20v-5"/><path d="M12 20V9"/><path d="M17 20v-8"/>',
+ calendar:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+ store:'<path d="M4 10v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9"/><path d="M3.5 6l1.2-2.2h14.6L20.5 6"/><path d="M3.5 6a2.6 2.6 0 0 0 5.2 0 2.6 2.6 0 0 0 5.2 0 2.6 2.6 0 0 0 5.2 0"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+ tag:'<path d="M4 4h7l9 9-7 7-9-9V4z"/><circle cx="8" cy="8" r="1.3"/>'
+};
+function ic(n,sz){sz=sz||16;return '<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline-block;vertical-align:-.15em;flex:none">'+(ICONS[n]||'')+'</svg>';}
+function mi(n,c,sz){return '<span class="mi'+(c?' '+c:'')+'">'+ic(n,sz||13)+'</span>';}
+function renderIcons(root){(root||document).querySelectorAll('[data-icon]').forEach(el=>{el.innerHTML=ic(el.dataset.icon,+(el.dataset.size||16));});}
+/* ===== theme ===== */
+function currentTheme(){return document.documentElement.classList.contains('dark')?'dark':'light';}
+function updateThemeBtn(){const b=document.getElementById('themeBtn');if(b){b.innerHTML=ic(currentTheme()==='dark'?'sun':'moon',18);b.setAttribute('aria-label',currentTheme()==='dark'?'สลับเป็นธีมสว่าง':'สลับเป็นธีมมืด');}}
+function applyTheme(t){document.documentElement.classList.toggle('dark',t==='dark');try{localStorage.setItem('nineplus_dashboard_theme',t);}catch(e){}updateThemeBtn();loadThemeColors();render();}
+function toggleTheme(){applyTheme(currentTheme()==='dark'?'light':'dark');}
+/* ===== chart colors from tokens ===== */
+let C={}, PALETTE=[];
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function hexA(h,a){h=(h||'').replace('#','');if(h.length===3)h=h.split('').map(x=>x+x).join('');const n=parseInt(h,16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
+function loadThemeColors(){
+  C={accent:cssv('--omnix-accent'),accent2:cssv('--c2'),danger:cssv('--c3'),warn:cssv('--c4'),purple:cssv('--c6'),pink:cssv('--c8'),orange:cssv('--c4'),sub:cssv('--omnix-fg-muted'),line:cssv('--omnix-border'),surface:cssv('--omnix-surface')};
+  PALETTE=[cssv('--c1'),cssv('--c2'),cssv('--c3'),cssv('--c4'),cssv('--c5'),cssv('--c6'),cssv('--c7'),cssv('--c8')];
+  Chart.defaults.color=C.sub; Chart.defaults.borderColor=hexA(C.line,.9);
+}
+Chart.defaults.font.family='Inter,"IBM Plex Sans Thai","Noto Sans Thai","Noto Sans SC",system-ui,sans-serif';
+
+const SEL={month:new Set(),shop:new Set(),person:new Set(),reason:new Set()};
+let VALS={shop:[],person:[],reason:[]};
+const LASTVALS={};
+const charts={};
+const sortState={tblMc:{k:'plan',dir:-1}, tblLog:{k:'date',dir:1}};
+
+/* ---------- UPLOAD ---------- */
+function get(row,cands){for(const k in row){const key=k.trim();for(const c of cands){if(key===c||key.toUpperCase().includes(c.toUpperCase()))return row[k];}}return undefined;}
+function classify(fields, rows){
+  const F=fields.map(x=>String(x).trim());
+  const has=s=>F.some(f=>f.toUpperCase().includes(s.toUpperCase()));
+  if(has('PLAN / SLOT')||has('MC NAME')){
+    const out=[];
+    rows.forEach(r=>{
+      const mc=get(r,['MC NAME']); if(!mc)return;
+      const plan=+(''+(get(r,['PLAN'])||0)).replace(/[^0-9.-]/g,'')||0;
+      const cancel=+(''+(get(r,['CANECLLATION','CANCEL'])||0)).replace(/[^0-9.-]/g,'')||0;
+      const actual=+(''+(get(r,['ACTUAL'])||0)).replace(/[^0-9.-]/g,'')||0;
+      if(plan===0&&cancel===0&&actual===0)return;
+      out.push({month:(get(r,['MONTH'])||'').trim(),platform:(get(r,['PLATFORM'])||'SHOPEE').trim(),
+        shop:(get(r,['SHOP'])||'').trim(),mc:(''+mc).trim(),plan,cancel,actual});
+    });
+    return {type:'plan',rows:out.filter(r=>r.month&&r.mc)};
+  }
+  if(has('เหตุผล')||(has('NAME')&&has('DATE'))){
+    const out=[];
+    rows.forEach(r=>{
+      const name=get(r,['NAME']); if(!name)return;
+      const date=(''+(get(r,['DATE'])||'')).trim();
+      const sub=(''+(get(r,['คนแทน'])||'')).trim();
+      out.push({month:(get(r,['MONTH'])||'').trim(),platform:(get(r,['PLATFORM'])||'SHOPEE').trim(),
+        date, day:(parseInt(date.split('/')[0])||0),
+        timing:(''+(get(r,['TIMING'])||'')).trim(),name:(''+name).trim(),
+        shop:(get(r,['SHOP'])||'').trim(),reason:(''+(get(r,['เหตุผล'])||'อื่นๆ')).trim(),
+        substitute:sub, note:(''+(get(r,['หมายเหตุ'])||'')).trim(),
+        has_sub:(sub&&sub.toLowerCase()!=='nan')?1:0});
+    });
+    return {type:'cancel',rows:out.filter(r=>r.month&&r.name)};
+  }
+  return {type:null,rows:[]};
+}
+/* unique keys for duplicate exclusion */
+const planKey=r=>[r.month,r.shop,r.mc].join('|').toUpperCase();
+const cancelKey=r=>[r.month,r.date,r.timing,r.name,r.shop].join('|').toUpperCase();
+function dedupe(arr,keyFn){const m=new Map();arr.forEach(r=>m.set(keyFn(r),r));return [...m.values()];} // last wins → ข้อมูลใหม่ทับเก่า
+function dedupeAll(){const a=RAW.plan.length,b=RAW.cancel.length;RAW.plan=dedupe(RAW.plan,planKey);RAW.cancel=dedupe(RAW.cancel,cancelKey);return (a-RAW.plan.length)+(b-RAW.cancel.length);}
+function mergeData(type,rows){
+  const keyFn=type==='plan'?planKey:cancelKey;
+  const nIn=rows.length; rows=dedupe(rows,keyFn); const inDup=nIn-rows.length;      // ซ้ำภายในไฟล์เดียวกัน
+  const mons=[...new Set(rows.map(r=>r.month))];
+  if(type==='plan') RAW.plan=dedupe(RAW.plan.filter(r=>!mons.includes(r.month)).concat(rows),planKey);
+  else RAW.cancel=dedupe(RAW.cancel.filter(r=>!mons.includes(r.month)).concat(rows),cancelKey);
+  return {mons, added:rows.length, inDup};
+}
+async function handleFiles(list){
+  const files=[...list]; if(!files.length)return; const msgs=[];
+  for(const f of files){
+    try{
+      const text=await f.text();
+      const parsed=Papa.parse(text,{header:true,skipEmptyLines:true});
+      const {type,rows}=classify(parsed.meta.fields||[],parsed.data||[]);
+      if(!type){msgs.push(mi('x','bad')+' <b>'+f.name+'</b> — ไม่รู้จักรูปแบบ (ต้องมีคอลัมน์ MC NAME หรือ เหตุผลที่ยกเลิก)');continue;}
+      if(!rows.length){msgs.push(mi('warning','warn')+' <b>'+f.name+'</b> — ไม่พบข้อมูลที่ใช้ได้');continue;}
+      const {mons,added,inDup}=mergeData(type,rows);
+      const dupTxt = inDup>0 ? ' · <span style="color:var(--warn)">ตัดซ้ำ '+inDup+' รายการ</span>' : '';
+      msgs.push(mi('check','ok')+' <b>'+f.name+'</b> → '+(type==='plan'?'Plan Slot':'ยกเลิกไลฟ์')+' · '+added+' แถว · เดือน: '+mons.map(m=>ML[m]||m).join(', ')+dupTxt);
+    }catch(e){msgs.push(mi('x','bad')+' <b>'+f.name+'</b> — อ่านไฟล์ไม่ได้: '+e.message);}
+  }
+  const totalDup=dedupeAll();  // กันซ้ำข้ามไฟล์/รอบอัปโหลดอีกชั้นหนึ่ง
+  if(totalDup>0) msgs.push(mi('check','ok')+' ตรวจซ้ำรวมทั้งหมด: ลบข้อมูลซ้ำอีก '+totalDup+' รายการ');
+  rebuildMonthMeta(); initFilters(true); render();
+  const ok=saveData();
+  msgs.push(ok?mi('check','ok')+' บันทึกข้อมูลอัตโนมัติแล้ว (เปิดไฟล์นี้อีกครั้งบนเบราว์เซอร์เดิมจะมีข้อมูลครบ)'
+              :mi('warning','warn')+' เบราว์เซอร์นี้บันทึกอัตโนมัติไม่ได้ — กด “ดาวน์โหลด Dashboard + ข้อมูลล่าสุด” เพื่อเก็บข้อมูลแทน');
+  document.getElementById('upStatus').innerHTML=msgs.join('<br>');
+}
+/* drag & drop */
+
+
+function resetData(){
+  if(HAS_LS){try{localStorage.removeItem(LSKEY);}catch(e){}}
+  RAW=JSON.parse(JSON.stringify(ORIGINAL)); dedupeAll();
+  rebuildMonthMeta(); initFilters(false); render(); updateSaveState();
+  document.getElementById('upStatus').innerHTML=mi('refresh','mut')+' คืนค่าข้อมูลเริ่มต้น และล้างข้อมูลที่บันทึกอัตโนมัติแล้ว';
+}
+function downloadDashboard(){
+  let html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  const nd=JSON.stringify(RAW);
+  const S='/*'+'DATA_START'+'*/', E='/*'+'DATA_END'+'*/';
+  const esc=s=>s.replace(/[.*+?^${}()|[\]\\/]/g,'\\$&');
+  html=html.replace(new RegExp(esc(S)+'[\\s\\S]*?'+esc(E)), S+nd+E);
+  const d=new Date(),p=n=>(''+n).padStart(2,'0');
+  const fn='9Plus_Live_Dashboard_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.html';
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click();
+  document.getElementById('upStatus').innerHTML=mi('download','info')+' ดาวน์โหลดแล้ว: <b>'+fn+'</b> (เปิดไฟล์นี้ครั้งหน้าจะมีข้อมูลล่าสุดครบ)';
+}
+function renderDataInfo(){
+  const pm=[...new Set(RAW.plan.map(r=>r.month))].sort((a,b)=>{const A=mkey(a),B=mkey(b);return A.y-B.y||A.i-B.i;});
+  const cm=[...new Set(RAW.cancel.map(r=>r.month))].sort((a,b)=>{const A=mkey(a),B=mkey(b);return A.y-B.y||A.i-B.i;});
+  const di=document.getElementById('dataInfo'); if(!di) return;
+  di.innerHTML=
+    mi('chart','acc')+' Plan Slot: <b>'+RAW.plan.length+'</b> แถว · เดือน <b>'+(pm.map(m=>ML[m]||m).join(', ')||'—')+'</b>'+
+    ' &nbsp;|&nbsp; '+mi('ban','bad')+' ยกเลิกไลฟ์: <b>'+RAW.cancel.length+'</b> รายการ · เดือน <b>'+(cm.map(m=>ML[m]||m).join(', ')||'—')+'</b>';
+}
+
+/* ---------- FILTERS (multi-select ทุกช่อง + เลือกทั้งหมด/ล้างทั้งหมด) ---------- */
+const MSEL={
+  msMonth :{key:'month', values:()=>MO,          label:m=>ML[m]||m, all:'ทุกเดือน',   ord:(a,b)=>MO.indexOf(a)-MO.indexOf(b)},
+  msShop  :{key:'shop',  values:()=>VALS.shop,   label:v=>v,        all:'ทุกร้าน'},
+  msPerson:{key:'person',values:()=>VALS.person, label:v=>v,        all:'ทุกคน'},
+  msReason:{key:'reason',values:()=>VALS.reason, label:v=>v,        all:'ทุกเหตุผล'},
+};
+function escAttr(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function buildMsel(id,preserve){
+  const cfg=MSEL[id], set=SEL[cfg.key], vals=cfg.values();
+  const prevSel=preserve?new Set(set):null, prevAll=preserve?(LASTVALS[id]||[]):null;
+  const pop=document.querySelector('#'+id+' .msel-pop');
+  const head=`<div class="msel-head"><button type="button" onclick="mselAll('${id}',true)">${ic('check',13)} เลือกทั้งหมด</button><button type="button" class="clr" onclick="mselAll('${id}',false)">${ic('x',13)} ล้างทั้งหมด</button></div>`;
+  const body=vals.map(v=>{
+    const ck = !preserve ? 'checked' : (prevSel.has(v) ? 'checked' : (prevAll.includes(v) ? '' : 'checked')); // ค่าใหม่ที่เพิ่งอัปโหลด → ติ๊กอัตโนมัติ
+    return `<label><input type="checkbox" value="${escAttr(v)}" ${ck} onchange="onMselChange('${id}')"> ${cfg.label(v)}</label>`;
+  }).join('');
+  pop.innerHTML=head+(body||'<div style="padding:8px;color:var(--mut);font-size:12px">— ไม่มีข้อมูล —</div>');
+  LASTVALS[id]=vals.slice();
+  syncSet(id);
+}
+function syncSet(id){
+  const set=SEL[MSEL[id].key]; set.clear();
+  document.querySelectorAll('#'+id+' .msel-pop input:checked').forEach(c=>set.add(c.value));
+  syncText(id);
+}
+function syncText(id){
+  const cfg=MSEL[id], set=SEL[cfg.key], total=document.querySelectorAll('#'+id+' .msel-pop input').length;
+  const t=document.querySelector('#'+id+' .txt');
+  if(set.size===0) t.textContent='—';
+  else if(set.size===total) t.textContent=cfg.all;
+  else{let arr=[...set]; if(cfg.ord)arr.sort(cfg.ord); t.textContent=arr.map(v=>cfg.label(v)).join(', ');}
+}
+function onMselChange(id){syncSet(id);render();}
+function mselAll(id,on){document.querySelectorAll('#'+id+' .msel-pop input').forEach(c=>c.checked=on);syncSet(id);render();}
+function toggleMsel(id){const p=document.querySelector('#'+id+' .msel-pop');document.querySelectorAll('.msel-pop').forEach(x=>{if(x!==p)x.classList.remove('open');});p.classList.toggle('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('.msel'))document.querySelectorAll('.msel-pop').forEach(p=>p.classList.remove('open'));});
+function initFilters(preserve){
+  VALS.shop  =[...new Set([...RAW.plan.map(r=>r.shop),...RAW.cancel.map(r=>r.shop)])].filter(Boolean).sort();
+  VALS.person=[...new Set([...RAW.plan.map(r=>r.mc),...RAW.cancel.map(r=>r.name)])].filter(Boolean).sort();
+  VALS.reason=[...new Set(RAW.cancel.map(r=>r.reason))].filter(Boolean).sort();
+  ['msMonth','msShop','msPerson','msReason'].forEach(id=>buildMsel(id,preserve));
+  renderDataInfo();
+}
+function resetFilters(){
+  ['msMonth','msShop','msPerson','msReason'].forEach(id=>{document.querySelectorAll('#'+id+' .msel-pop input').forEach(c=>c.checked=true);syncSet(id);});
+  render();
+}
+
+/* ---------- DATA FILTER ---------- */
+function planFiltered(){return RAW.plan.filter(r=>SEL.month.has(r.month)&&SEL.shop.has(r.shop)&&SEL.person.has(r.mc));}
+function cancelFiltered(){return RAW.cancel.filter(r=>SEL.month.has(r.month)&&SEL.shop.has(r.shop)&&SEL.person.has(r.name)&&SEL.reason.has(r.reason));}
+const fmt=n=>Number(n).toLocaleString();
+const pct=(a,b)=>b?(a/b*100):0;
+
+function render(){
+  const P=planFiltered(),Cc=cancelFiltered();
+  const mo=MO.filter(m=>SEL.month.has(m));
+  document.getElementById('rangeBadge').textContent=mo.length?(ML[mo[0]]+' – '+ML[mo[mo.length-1]]+' '+mkey(mo[mo.length-1]).y):'ไม่มีข้อมูล';
+  renderSec1(P); renderSec2(Cc);
+}
+
+function renderSec1(P){
+  const plan=P.reduce((s,r)=>s+r.plan,0),act=P.reduce((s,r)=>s+r.actual,0),can=P.reduce((s,r)=>s+r.cancel,0);
+  document.getElementById('kPlan').textContent=fmt(plan);
+  document.getElementById('kActual').textContent=fmt(act);
+  document.getElementById('kCancel').textContent=fmt(can);
+  document.getElementById('kFulfill').innerHTML=pct(act,plan).toFixed(1)+'<small>%</small>';
+  document.getElementById('kCancelRate').innerHTML=pct(can,plan).toFixed(1)+'<small>%</small>';
+  document.getElementById('kActualMeta').textContent=plan?('จากแผน '+fmt(plan)+' slot'):'—';
+  document.getElementById('kCancelMeta').textContent=plan?(pct(can,plan).toFixed(1)+'% ของแผน'):'—';
+  const mons=MO.filter(m=>SEL.month.has(m)&&P.some(r=>r.month===m));
+  const g=(m,k)=>P.filter(r=>r.month===m).reduce((s,r)=>s+r[k],0);
+  mkChart('chMonth',{type:'bar',data:{labels:mons.map(m=>ML[m]),datasets:[
+    {label:'จอง',data:mons.map(m=>g(m,'plan')),backgroundColor:C.accent},
+    {label:'ไลฟ์จริง',data:mons.map(m=>g(m,'actual')),backgroundColor:C.accent2},
+    {label:'ยกเลิก',data:mons.map(m=>g(m,'cancel')),backgroundColor:C.danger}]},options:baseOpt()});
+  mkChart('chFulfill',{type:'line',data:{labels:mons.map(m=>ML[m]),datasets:[
+    {label:'อัตราสำเร็จ %',data:mons.map(m=>+pct(g(m,'actual'),g(m,'plan')).toFixed(1)),borderColor:C.accent2,backgroundColor:hexA(C.accent2,.14),fill:true,tension:.3,pointRadius:4}]},
+    options:baseOpt({y:{beginAtZero:true,ticks:{callback:v=>v+'%'}}})});
+  const mcs={};
+  P.forEach(r=>{(mcs[r.mc]=mcs[r.mc]||{plan:0,cancel:0,actual:0});mcs[r.mc].plan+=r.plan;mcs[r.mc].cancel+=r.cancel;mcs[r.mc].actual+=r.actual;});
+  let rows=Object.entries(mcs).map(([mc,v])=>({mc,...v,fulfill:pct(v.actual,v.plan),crate:pct(v.cancel,v.plan)}));
+  const rb=[...rows].sort((a,b)=>b.plan-a.plan);
+  document.getElementById('mcCnt').textContent='('+rows.length+' คน)';
+  mkChart('chMc',{type:'bar',data:{labels:rb.map(r=>r.mc),datasets:[
+    {label:'จอง',data:rb.map(r=>r.plan),backgroundColor:C.accent},
+    {label:'ไลฟ์จริง',data:rb.map(r=>r.actual),backgroundColor:C.accent2}]},options:baseOpt({},true)});
+  rows.sort((a,b)=>{const s=sortState.tblMc,dir=s.dir;let x=a[s.k],y=b[s.k];return typeof x==='string'?dir*x.localeCompare(y):dir*(x-y);});
+  const tb=document.querySelector('#tblMc tbody');
+  tb.innerHTML=rows.length?rows.map(r=>`<tr><td>${r.mc}</td><td class="num">${fmt(r.plan)}</td><td class="num">${fmt(r.cancel)}</td><td class="num">${fmt(r.actual)}</td>
+    <td class="num"><span class="pill ${r.fulfill>=95?'ok':r.fulfill>=85?'warn':'bad'}">${r.fulfill.toFixed(0)}%</span></td>
+    <td class="num"><span class="pill ${r.crate<=5?'ok':r.crate<=12?'warn':'bad'}">${r.crate.toFixed(0)}%</span></td></tr>`).join('')
+    :'<tr><td colspan="6" class="empty">ไม่มีข้อมูลตามตัวกรอง</td></tr>';
+}
+
+function renderSec2(D){
+  document.getElementById('cTotal').textContent=fmt(D.length);
+  const subN=D.filter(r=>r.has_sub).length;
+  document.getElementById('cSub').innerHTML=pct(subN,D.length).toFixed(0)+'<small>%</small>';
+  document.getElementById('cSubMeta').textContent=subN+' / '+D.length+' ครั้ง';
+  const cnt=(a,k)=>{const o={};a.forEach(r=>{const v=r[k];if(v!==''&&v!=null)o[v]=(o[v]||0)+1});return o;};
+  const top=o=>{const e=Object.entries(o).sort((a,b)=>b[1]-a[1]);return e.length?e[0]:['—',0];};
+  const reasons=cnt(D,'reason'),tr=top(reasons);
+  document.getElementById('cTopReason').textContent=tr[0];
+  document.getElementById('cTopReasonMeta').textContent=tr[1]+' ครั้ง ('+pct(tr[1],D.length).toFixed(0)+'%)';
+  const persons=cnt(D,'name'),tp=top(persons);
+  document.getElementById('cTopPerson').textContent=tp[0];document.getElementById('cTopPersonMeta').textContent=tp[1]+' ครั้ง';
+  const slots=cnt(D,'timing'),ts=top(slots);
+  document.getElementById('cTopSlot').textContent=ts[0]||'—';document.getElementById('cTopSlotMeta').textContent=ts[1]+' ครั้ง';
+  const re=Object.entries(reasons).sort((a,b)=>b[1]-a[1]);
+  mkChart('chReason',{type:'doughnut',data:{labels:re.map(x=>x[0]),datasets:[{data:re.map(x=>x[1]),backgroundColor:PALETTE,borderColor:C.surface,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'right',labels:{boxWidth:12,padding:8,font:{size:11}}}}}});
+  const mons=MO.filter(m=>SEL.month.has(m)&&D.some(r=>r.month===m));
+  const shops=[...new Set(D.map(r=>r.shop))];
+  mkChart('chCancelMonth',{type:'bar',data:{labels:mons.map(m=>ML[m]),datasets:shops.map((sh,i)=>({label:sh,data:mons.map(m=>D.filter(r=>r.month===m&&r.shop===sh).length),backgroundColor:PALETTE[i]}))},
+    options:baseOpt({x:{stacked:true},y:{stacked:true,beginAtZero:true}})});
+  const slotOrder=['00:00 - 02:00','02:00 - 04:00','04:00 - 06:00','06:00 - 08:00','08:00 - 10:00','10:00 - 12:00','12:00 - 14:00','14:00 - 16:00','16:00 - 18:00','18:00 - 20:00','20:00 - 22:00','22:00 - 00:00'];
+  const so=slotOrder.filter(s=>slots[s]);
+  mkChart('chSlot',{type:'bar',data:{labels:so,datasets:[{label:'ยกเลิก',data:so.map(s=>slots[s]),backgroundColor:C.orange}]},options:baseOpt()});
+  const pe=Object.entries(persons).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  mkChart('chPerson',{type:'bar',data:{labels:pe.map(x=>x[0]),datasets:[{label:'ยกเลิก',data:pe.map(x=>x[1]),backgroundColor:C.danger}]},options:baseOpt({},true)});
+  const subs=cnt(D.filter(r=>r.has_sub),'substitute');
+  const se=Object.entries(subs).sort((a,b)=>b[1]-a[1]);
+  if(se.length)mkChart('chSubber',{type:'bar',data:{labels:se.map(x=>x[0]),datasets:[{label:'รับแทน',data:se.map(x=>x[1]),backgroundColor:C.purple}]},options:baseOpt({},true)});
+  else clearChart('chSubber');
+  const rl=re.map(x=>x[0]);
+  mkChart('chReasonShop',{type:'bar',data:{labels:rl,datasets:shops.map((sh,i)=>({label:sh,data:rl.map(x=>D.filter(r=>r.reason===x&&r.shop===sh).length),backgroundColor:PALETTE[i]}))},
+    options:baseOpt({x:{stacked:true},y:{stacked:true,beginAtZero:true}},true)});
+  let rows=[...D];const s=sortState.tblLog;
+  rows.sort((a,b)=>{if(s.k==='date'){const av=MO.indexOf(a.month)*100+(a.day||0),bv=MO.indexOf(b.month)*100+(b.day||0);return s.dir*(av-bv);}let x=(a[s.k]||'').toString(),y=(b[s.k]||'').toString();return s.dir*x.localeCompare(y,'th');});
+  document.getElementById('logCnt').textContent='('+rows.length+' รายการ)';
+  const tb=document.querySelector('#tblLog tbody');
+  tb.innerHTML=rows.length?rows.slice(0,300).map(r=>`<tr><td>${ML[r.month]||r.month}</td><td>${r.date||'—'}</td><td>${r.timing||'—'}</td><td>${r.name}</td>
+    <td><span class="pill shop ${r.shop==='MOOVTH'?'moov':''}">${r.shop||'—'}</span></td><td>${r.reason}</td>
+    <td>${r.substitute?('<span class="pill sub">'+r.substitute+'</span>'):'<span class="pill gray">ไม่มี</span>'}</td>
+    <td style="color:var(--sub);max-width:220px;overflow:hidden;text-overflow:ellipsis">${r.note||'—'}</td></tr>`).join('')
+    :'<tr><td colspan="8" class="empty">ไม่มีข้อมูลตามตัวกรอง</td></tr>';
+  if(rows.length>300)tb.innerHTML+='<tr><td colspan="8" class="empty">แสดง 300 จาก '+rows.length+' รายการ (กรองเพิ่มเพื่อดูทั้งหมด)</td></tr>';
+}
+
+function baseOpt(scales={},horizontal=false){
+  const o={responsive:true,maintainAspectRatio:false,animation:{duration:250},
+    plugins:{legend:{labels:{boxWidth:12,padding:10,font:{size:11}}}},
+    scales:Object.assign({x:{grid:{color:hexA(C.line,.55)}},y:{beginAtZero:true,grid:{color:hexA(C.line,.55)}}},scales)};
+  if(horizontal)o.indexAxis='y';return o;
+}
+function mkChart(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
+function clearChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}const cv=document.getElementById(id);cv.getContext('2d').clearRect(0,0,cv.width,cv.height);}
+document.querySelectorAll('#tblMc thead th').forEach(th=>th.onclick=()=>{const k=th.dataset.k,s=sortState.tblMc;s.dir=(s.k===k)?-s.dir:-1;s.k=k;render();});
+document.querySelectorAll('#tblLog thead th').forEach(th=>th.onclick=()=>{const k=th.dataset.k,s=sortState.tblLog;s.dir=(s.k===k)?-s.dir:1;s.k=k;render();});
+
+/* ===== Google Sheet live sync ===== */
+function parseSheetId(v){v=(v||'').trim();const m=v.match(/\/d\/([a-zA-Z0-9_-]+)/);return m?m[1]:v;}
+let ghTimer=null;
+function saveSyncCfg(){try{localStorage.setItem('nineplus_sync_cfg',JSON.stringify({id:document.getElementById('ghId').value,gids:document.getElementById('ghGids').value,auto:document.getElementById('ghAuto').value}));}catch(e){}}
+function loadSyncCfg(){try{const s=localStorage.getItem('nineplus_sync_cfg');if(s){const o=JSON.parse(s);if(o.id)document.getElementById('ghId').value=o.id;if(o.gids)document.getElementById('ghGids').value=o.gids;if(o.auto!=null)document.getElementById('ghAuto').value=o.auto;}}catch(e){}}
+function setupAuto(){const v=+document.getElementById('ghAuto').value;if(ghTimer){clearInterval(ghTimer);ghTimer=null;}if(v>0)ghTimer=setInterval(syncFromSheet,v*60000);saveSyncCfg();}
+async function syncFromSheet(){
+  const id=parseSheetId(document.getElementById('ghId').value);
+  const gids=document.getElementById('ghGids').value.split(',').map(x=>x.trim()).filter(Boolean);
+  const st=document.getElementById('ghStatus');
+  if(!id||!gids.length){st.innerHTML=mi('x','bad')+' ระบุ Sheet ID และ gid อย่างน้อย 1 แท็บ';return;}
+  st.innerHTML=mi('info','mut')+' กำลังดึงข้อมูลจากชีต...';
+  const msgs=[]; let okAny=false;
+  for(const gid of gids){
+    const key = /^\d+$/.test(gid) ? 'gid=' : 'sheet=';
+    const url='https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?tqx=out:csv&'+key+encodeURIComponent(gid);
+    try{
+      const res=await fetch(url,{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const text=await res.text();
+      if(/<!DOCTYPE|<html|accounts\.google|sign ?in/i.test(text.slice(0,400))) throw new Error('ไม่มีสิทธิ์เข้าถึง (ยังไม่ได้แชร์แบบสาธารณะ)');
+      const parsed=Papa.parse(text,{header:true,skipEmptyLines:true});
+      const {type,rows}=classify(parsed.meta.fields||[],parsed.data||[]);
+      if(!type||!rows.length){msgs.push(mi('warning','warn')+' แท็บ '+gid+' — ไม่รู้จักรูปแบบ/ไม่มีข้อมูล');continue;}
+      mergeData(type,rows); okAny=true;
+      msgs.push(mi('check','ok')+' แท็บ '+gid+' → '+(type==='plan'?'Plan Slot':'ยกเลิกไลฟ์')+' '+rows.length+' แถว');
+    }catch(e){ msgs.push(mi('x','bad')+' แท็บ '+gid+' — '+e.message); }
+  }
+  if(okAny){ const dup=dedupeAll(); rebuildMonthMeta(); initFilters(true); render(); saveData(); saveSyncCfg(); if(dup>0)msgs.push(mi('check','ok')+' ตัดข้อมูลซ้ำ '+dup+' รายการ'); }
+  const t=new Date(),p=n=>(''+n).padStart(2,'0');
+  msgs.push('<b>'+(okAny?'ซิงก์สำเร็จ':'ซิงก์ไม่สำเร็จ')+'</b> · เวลา '+p(t.getHours())+':'+p(t.getMinutes())+':'+p(t.getSeconds()));
+  if(!okAny) msgs.push(mi('info','mut')+' วิธีแก้: เปิดชีต → แชร์ → “ทุกคนที่มีลิงก์ = ผู้อ่าน” (หรือ ไฟล์ → แชร์ → เผยแพร่ต่อเว็บ) แล้วกดดึงใหม่');
+  st.innerHTML=msgs.join('<br>');
+}
+
+/* init */
+const _saved=loadSaved();
+if(_saved){ RAW={plan:_saved.plan,cancel:_saved.cancel}; }
+loadThemeColors(); renderIcons(); updateThemeBtn(); loadSyncCfg(); setupAuto();
+dedupeAll(); rebuildMonthMeta(); initFilters(false); render(); updateSaveState();
+if(_saved){ const us=document.getElementById('upStatus'); if(us) us.innerHTML=mi('refresh','mut')+' โหลดข้อมูลที่บันทึกไว้อัตโนมัติล่าสุดแล้ว'; }
+</script>
+</body>
+</html>
