@@ -793,8 +793,12 @@ var SHEET_TABS = [
 ];
 var NAME_MAP = {'PC LAED':'PC LEAD','CS DAOJAI':'CS DAO','LEAD':'PC LEAD','DAO':'CS DAO','AON':'CS AON','FRING':'OP FRING','KUKKIK':'PC KUKKIK','TANGMO':'OP TANGMO','ANN':'CT ANN','AUM':'CS AUM'};
 var STORE_KEY = 'nineplus_live_report_v2';
-var BUILD_TS = 1794193743005;
+var BUILD_TS = 1794193981666;
 var syncing = false;
+var AUTO_SYNC_MS = 60000;          // ดึงอัตโนมัติทุก 1 นาที
+var lastSyncTs = 0, lastSig = '', lastDataTs = 0;
+function dataSig(d){ var s=JSON.stringify(d),h=0; for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return s.length+':'+h; }
+function autoNote(){ return ' · อัปเดตอัตโนมัติทุก '+(AUTO_SYNC_MS/60000)+' นาที'; }
 
 function normName(v){ var t=String(v==null?'':v).trim().replace(/\s+/g,' '); if(!t||t.toLowerCase()==='nan') return ''; return NAME_MAP[t.toUpperCase()]||t; }
 function toNum(v){ var n=parseFloat(String(v==null?'':v).replace(/[^0-9.-]/g,'')); return isNaN(n)?0:n; }
@@ -859,7 +863,7 @@ function setSyncStatus(html, kind){
 }
 function fmtTime(ts){
   var d=new Date(ts),p=function(n){return (n<10?'0':'')+n;};
-  return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+  return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
 }
 function saveLocal(ts){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({ts:ts, data:RAW})); }catch(e){} }
 function loadLocal(){ try{ var s=localStorage.getItem(STORE_KEY); if(!s) return null; var o=JSON.parse(s); return (o&&o.data&&o.data.plan&&o.data.cancel)?o:null; }catch(e){ return null; } }
@@ -880,11 +884,11 @@ function refreshAll(){
   if(id==='exec') renderExec(); else if(id==='shopee') renderShopeeCancel(); else if(id==='tiktok') renderTikTokCancel(); else if(id==='plan') renderPlan();
 }
 
-function syncFromSheet(){
+function syncFromSheet(silent){
   if(syncing) return;
   syncing=true;
   var btn=document.getElementById('sync-btn'); if(btn){ btn.disabled=true; btn.classList.add('is-loading'); }
-  setSyncStatus('กำลังดึงข้อมูลจาก Google Sheet…');
+  if(silent!==true) setSyncStatus('กำลังดึงข้อมูลจาก Google Sheet…');
   Promise.all(SHEET_TABS.map(function(t){
     return fetchTab(t).then(function(rows){ return {tab:t, rows:rows}; }, function(e){ return {tab:t, error:e}; });
   })).then(function(res){
@@ -898,10 +902,10 @@ function syncFromSheet(){
     var plan=[], cancel=[];
     res.forEach(function(r){ if(r.tab.kind==='plan') plan=plan.concat(r.rows); else cancel=cancel.concat(r.rows); });
     if(!plan.length||!cancel.length){ setSyncStatus('ซิงก์ไม่สำเร็จ: ไม่พบข้อมูลในชีต · ยังแสดงข้อมูลชุดเดิม','error'); return; }
-    RAW={plan:plan, cancel:cancel};
-    var ts=Date.now(); saveLocal(ts);
-    refreshAll();
-    setSyncStatus('อัปเดตล่าสุด '+fmtTime(ts)+' · Plan '+plan.length.toLocaleString('th-TH')+' แถว · ยกเลิก '+cancel.length.toLocaleString('th-TH')+' แถว','ok');
+    var ts=Date.now(); lastSyncTs=ts;
+    var next={plan:plan, cancel:cancel}, sig=dataSig(next);
+    if(sig!==lastSig){ RAW=next; lastSig=sig; lastDataTs=ts; saveLocal(ts); refreshAll(); }
+    setSyncStatus('อัปเดตล่าสุด '+fmtTime(ts)+' · ข้อมูลเปลี่ยนล่าสุด '+fmtTime(lastDataTs||ts)+' · Plan '+RAW.plan.length.toLocaleString('th-TH')+' · ยกเลิก '+RAW.cancel.length.toLocaleString('th-TH')+' แถว'+autoNote(),'ok');
   }).finally(function(){
     syncing=false; if(btn){ btn.disabled=false; btn.classList.remove('is-loading'); }
   });
@@ -917,8 +921,13 @@ function init(){
   RAW.cancel.forEach(function(r){ r.mc_name=normName(r.mc_name); r.replacement=normName(r.replacement); });
   requestAnimationFrame(function(){
     refreshAll();
+    lastSig=dataSig(RAW); lastDataTs=ts;
     setSyncStatus('ข้อมูล ณ '+fmtTime(ts));
     syncFromSheet();
+    setInterval(function(){ if(document.visibilityState==='visible') syncFromSheet(true); }, AUTO_SYNC_MS);
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState==='visible' && Date.now()-lastSyncTs>15000) syncFromSheet(true);
+    });
   });
 }
 
