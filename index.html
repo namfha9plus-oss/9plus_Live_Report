@@ -482,20 +482,24 @@ function applyTheme(){
 function toggleTheme(){ darkMode=!darkMode; applyTheme(); }
 
 function setupChartDefaults(){
-  Chart.defaults.font.family='"Inter","IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif';
-  Chart.defaults.color=cv('--omnix-chart-axis');
-  Chart.defaults.plugins.legend.display=false;
-  Chart.defaults.plugins.tooltip.backgroundColor=cv('--omnix-surface');
-  Chart.defaults.plugins.tooltip.titleColor=cv('--omnix-fg');
-  Chart.defaults.plugins.tooltip.bodyColor=cv('--omnix-fg');
-  Chart.defaults.plugins.tooltip.borderColor=cv('--omnix-border');
-  Chart.defaults.plugins.tooltip.borderWidth=1;
-  Chart.defaults.plugins.tooltip.mode='index';
-  Chart.defaults.plugins.tooltip.intersect=false;
-  Chart.defaults.maintainAspectRatio=false;
+  if(typeof Chart==='undefined') return;
+  try{
+    Chart.defaults.font.family='"Inter","IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif';
+    Chart.defaults.color=cv('--omnix-chart-axis');
+    Chart.defaults.plugins.legend.display=false;
+    Chart.defaults.plugins.tooltip.backgroundColor=cv('--omnix-surface');
+    Chart.defaults.plugins.tooltip.titleColor=cv('--omnix-fg');
+    Chart.defaults.plugins.tooltip.bodyColor=cv('--omnix-fg');
+    Chart.defaults.plugins.tooltip.borderColor=cv('--omnix-border');
+    Chart.defaults.plugins.tooltip.borderWidth=1;
+    Chart.defaults.plugins.tooltip.mode='index';
+    Chart.defaults.plugins.tooltip.intersect=false;
+    Chart.defaults.maintainAspectRatio=false;
+  }catch(e){}
 }
 
 function makeChart(id, type, labels, datasets, opts){
+  if(typeof Chart==='undefined') return;
   if(charts[id]){ charts[id].destroy(); }
   var ctx=document.getElementById(id);
   if(!ctx) return;
@@ -848,7 +852,7 @@ var SHEET_TABS = [
 ];
 var NAME_MAP = {'PC LAED':'PC LEAD','CS DAOJAI':'CS DAO','LEAD':'PC LEAD','DAO':'CS DAO','AON':'CS AON','FRING':'OP FRING','KUKKIK':'PC KUKKIK','TANGMO':'OP TANGMO','ANN':'CT ANN','AUM':'CS AUM'};
 var STORE_KEY = 'nineplus_live_report_v2';
-var BUILD_TS = 1794196170482;
+var BUILD_TS = 1794196735698;
 var syncing = false;
 var AUTO_SYNC_MS = 60000;          // ดึงอัตโนมัติทุก 1 นาที
 var lastSyncTs = 0, lastSig = '', lastDataTs = 0;
