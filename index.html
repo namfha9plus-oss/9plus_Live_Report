@@ -135,6 +135,12 @@ svg{display:inline-block;vertical-align:middle}
 .ox-btn--secondary{background:var(--omnix-surface);color:var(--omnix-fg);border-color:var(--omnix-border)}
 .ox-btn--secondary:hover{background:var(--omnix-surface-2)}
 .ox-btn:disabled{opacity:.6;cursor:progress}
+.ox-chart__empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--omnix-fg-muted)}
+.ox-scroll.is-tall{max-height:560px;overflow:auto}
+.ox-scroll.is-tall thead th{position:sticky;top:0;z-index:1;background:var(--omnix-surface-2)}
+.ox-notes{margin:12px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--omnix-fg-muted);line-height:1.6}
+.ox-notes b{color:var(--omnix-fg);font-weight:600}
+.ox-table tr.is-hl td{background:var(--omnix-accent-soft)}
 .ox-sync-status{font-size:12px;color:var(--omnix-fg-muted);text-align:right;max-width:420px}
 .ox-sync-status.is-ok{color:var(--omnix-success-fg)}
 .ox-sync-status.is-error{color:var(--omnix-danger-fg)}
@@ -172,9 +178,8 @@ svg{display:inline-block;vertical-align:middle}
 
   <div class="ox-tabs" role="tablist">
     <button class="ox-tab is-active" onclick="switchTab('exec',this)">Executive Summary</button>
-    <button class="ox-tab" onclick="switchTab('shopee',this)">Shopee Cancellation</button>
-    <button class="ox-tab" onclick="switchTab('tiktok',this)">TikTok Cancellation</button>
-    <button class="ox-tab" onclick="switchTab('plan',this)">Plan Overview</button>
+    <button class="ox-tab" onclick="switchTab('shopee',this)">Shopee</button>
+    <button class="ox-tab" onclick="switchTab('tiktok',this)">TikTok</button>
   </div>
 
   <!-- ══ EXEC ══════════════════════════════════════════════════════════ -->
@@ -259,120 +264,180 @@ svg{display:inline-block;vertical-align:middle}
     </div>
   </div>
 
-  <!-- ══ SHOPEE ═════════════════════════════════════════════════════════ -->
+  <!-- ══ SHOPEE ══════════════════════════════════════════════════════ -->
   <div id="tab-shopee" class="ox-tab-panel">
     <div class="ox-filter-bar">
       <span class="ox-filter-label">เดือน</span>
-      <select class="ox-control" id="shopee-month-filter" onchange="renderShopeeCancel()"><option value="ALL">ทั้งหมด</option></select>
+      <select class="ox-control" id="shopee-month-filter" onchange="renderShopee()"><option value="ALL">ทุกเดือน</option></select>
       <span class="ox-filter-label">MC</span>
-      <select class="ox-control" id="shopee-mc-filter" onchange="renderShopeeCancel()"><option value="ALL">ทั้งหมด</option></select>
+      <select class="ox-control" id="shopee-mc-filter" onchange="renderShopee()"><option value="ALL">ทั้งหมด</option></select>
       <span class="ox-filter-bar__meta" id="shopee-meta"></span>
     </div>
-    <div class="ox-chart is-wide">
-      <div class="ox-chart__head"><div><div class="ox-chart__title">Shopee — Cancellation รายเดือน แยก MC</div></div></div>
-      <div class="ox-chart__canvas"><canvas id="chart-shopee-mc"></canvas></div>
-    </div>
-    <div class="ox-table-wrap">
-      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">รายการยกเลิก Shopee</span></div>
-      <div class="ox-scroll">
-        <table class="ox-table" id="tbl-shopee-cancel">
-          <thead><tr>
-            <th class="sortable" data-col="month">เดือน<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="date">วันที่<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="timing">เวลา<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="mc_name">MC Name<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="reason">เหตุผล<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="replacement">คนแทน<i class="sort-icon">↕</i></th>
-            <th>หมายเหตุ</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 
-  <!-- ══ TIKTOK ════════════════════════════════════════════════════════ -->
-  <div id="tab-tiktok" class="ox-tab-panel">
-    <div class="ox-filter-bar">
-      <span class="ox-filter-label">เดือน</span>
-      <select class="ox-control" id="tiktok-month-filter" onchange="renderTikTokCancel()"><option value="ALL">ทั้งหมด</option></select>
-      <span class="ox-filter-label">MC</span>
-      <select class="ox-control" id="tiktok-mc-filter" onchange="renderTikTokCancel()"><option value="ALL">ทั้งหมด</option></select>
-      <span class="ox-filter-bar__meta" id="tiktok-meta"></span>
-    </div>
-    <div class="ox-chart is-wide">
-      <div class="ox-chart__head"><div><div class="ox-chart__title">TikTok — Cancellation รายเดือน แยก MC</div></div></div>
-      <div class="ox-chart__canvas"><canvas id="chart-tiktok-mc"></canvas></div>
-    </div>
-    <div class="ox-table-wrap">
-      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">รายการยกเลิก TikTok</span></div>
-      <div class="ox-scroll">
-        <table class="ox-table" id="tbl-tiktok-cancel">
-          <thead><tr>
-            <th class="sortable" data-col="month">เดือน<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="date">วันที่<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="timing">เวลา<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="mc_name">MC Name<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="reason">เหตุผล<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="replacement">คนแทน<i class="sort-icon">↕</i></th>
-            <th>หมายเหตุ</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+    <div class="ox-kpi-grid" id="shopee-kpis"></div>
 
-  <!-- ══ PLAN ══════════════════════════════════════════════════════════ -->
-  <div id="tab-plan" class="ox-tab-panel">
-    <div class="ox-filter-bar">
-      <span class="ox-filter-label">แพลตฟอร์ม</span>
-      <select class="ox-control" id="plan-platform-filter" onchange="updatePlanMCFilter()">
-        <option value="ALL">Shopee + TikTok</option>
-        <option value="SHOPEE">Shopee</option>
-        <option value="TIKTOK">TikTok</option>
-      </select>
-      <span class="ox-filter-label">เดือน</span>
-      <select class="ox-control" id="plan-month-filter" onchange="renderPlan()"><option value="ALL">ทุกเดือน</option></select>
-      <span class="ox-filter-label">MC</span>
-      <select class="ox-control" id="plan-mc-filter" onchange="renderPlan()"><option value="ALL">ทั้งหมด</option></select>
-      <span class="ox-filter-bar__meta" id="plan-meta"></span>
-    </div>
     <div class="ox-chart is-wide">
-      <div class="ox-chart__head">
-        <div><div class="ox-chart__title" id="plan-chart-title">Plan Overview — Shopee + TikTok</div>
-        <div class="ox-chart__sub">แยกตามเดือน</div></div>
-      </div>
+      <div class="ox-chart__head"><div><div class="ox-chart__title">Shopee — แนวโน้มรายเดือน</div><div class="ox-chart__sub">Plan / Actual / Cancel (slot) และจำนวนรายการยกเลิก · กรอง MC ได้</div></div></div>
       <div class="ox-legend">
         <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Plan</span>
         <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>Actual</span>
-        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-4)"></span>Cancel</span>
+        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-4)"></span>Cancel (slot)</span>
+        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-3)"></span>รายการยกเลิก (log)</span>
       </div>
-      <div class="ox-chart__canvas"><canvas id="chart-plan-trend"></canvas></div>
+      <div class="ox-chart__canvas"><canvas id="chart-shopee-trend"></canvas></div>
+    </div>
+
+    <div class="ox-chart-grid">
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">เหตุผลการยกเลิก</div><div class="ox-chart__sub">Top 10 · จำนวนครั้ง (% ของรายการยกเลิก)</div></div></div>
+        <div class="ox-chart__canvas" style="height:300px"><canvas id="chart-shopee-reason"></canvas></div>
+      </div>
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">MC ที่ยกเลิกมากที่สุด</div><div class="ox-chart__sub">Top 12 · จำนวนรายการยกเลิก</div></div></div>
+        <div class="ox-chart__canvas" style="height:300px"><canvas id="chart-shopee-mc"></canvas></div>
+      </div>
     </div>
     <div class="ox-chart-grid">
       <div class="ox-chart">
-        <div class="ox-chart__head"><div><div class="ox-chart__title">Plan per MC</div></div></div>
-        <div class="ox-chart__canvas"><canvas id="chart-plan-mc"></canvas></div>
+        <div class="ox-chart__head"><div><div class="ox-chart__title">รอบเวลาที่ยกเลิก</div><div class="ox-chart__sub">เรียงตามเวลาไลฟ์</div></div></div>
+        <div class="ox-chart__canvas"><canvas id="chart-shopee-slot"></canvas></div>
       </div>
       <div class="ox-chart">
-        <div class="ox-chart__head"><div><div class="ox-chart__title">Utilization Rate (Actual/Plan %)</div></div></div>
-        <div class="ox-chart__canvas"><canvas id="chart-util"></canvas></div>
+        <div class="ox-chart__head"><div><div class="ox-chart__title">วันในสัปดาห์ที่ยกเลิก</div><div class="ox-chart__sub">นับจากวันที่ในชีต</div></div></div>
+        <div class="ox-chart__canvas"><canvas id="chart-shopee-weekday"></canvas></div>
       </div>
     </div>
+    <div class="ox-chart-grid">
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">คนแทนที่มาแทนบ่อยที่สุด</div><div class="ox-chart__sub">Top 12 · จำนวนครั้งที่ไปแทน</div></div></div>
+        <div class="ox-chart__canvas" style="height:300px"><canvas id="chart-shopee-sub"></canvas></div>
+      </div>
+      <div class="ox-chart ox-chart--note">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">อ่านค่าอย่างไร</div></div></div>
+        <ul class="ox-notes">
+          <li><b>Cancel (slot)</b> มาจากแท็บ Shopee Plan (คอลัมน์ยกเลิกไลฟ์) ใช้คำนวณ Cancel Rate</li>
+          <li><b>รายการยกเลิก (log)</b> มาจากแท็บ Shopee Live Cancellation นับทีละครั้ง ใช้แยกเหตุผล เวลา วัน และคนแทน</li>
+          <li><b>Utilization</b> = Actual ÷ Plan · <b>Cancel Rate</b> = Cancel ÷ Plan</li>
+          <li><b>มีคนแทน</b> = รายการยกเลิกที่มีชื่อในคอลัมน์คนแทน</li>
+        </ul>
+      </div>
+    </div>
+
     <div class="ox-table-wrap">
-      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">Plan รายละเอียด</span></div>
+      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">ผลงานราย MC</span><span class="ox-filter-bar__meta">ตามเดือนที่เลือก</span></div>
       <div class="ox-scroll">
-        <table class="ox-table" id="tbl-plan">
-          <thead><tr>
-            <th class="sortable" data-col="month">เดือน<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="platform">แพลตฟอร์ม<i class="sort-icon">↕</i></th>
-            <th class="sortable" data-col="mc_name">MC Name<i class="sort-icon">↕</i></th>
-            <th class="sortable is-num" data-col="plan">Plan<i class="sort-icon">↕</i></th>
-            <th class="sortable is-num" data-col="cancel">Cancel<i class="sort-icon">↕</i></th>
-            <th class="sortable is-num" data-col="actual">Actual<i class="sort-icon">↕</i></th>
-            <th class="sortable is-num" data-col="util">Util %<i class="sort-icon">↕</i></th>
-          </tr></thead>
+        <table class="ox-table" id="tbl-shopee-mc">
+          <thead><tr><th class="sortable" data-col="mc_name">MC<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="plan">Plan<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="actual">Actual<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="cancel">Cancel<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="util">Util %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="rate">Cancel %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="logs">รายการยกเลิก<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="covered">มีคนแทน<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="covering">ไปแทนคนอื่น<i class="sort-icon">↕</i></th><th class="sortable" data-col="top_reason">เหตุผลหลัก<i class="sort-icon">↕</i></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ox-table-wrap">
+      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">สรุปรายเดือน</span><span class="ox-filter-bar__meta">ทุกเดือน · กรอง MC ได้</span></div>
+      <div class="ox-scroll">
+        <table class="ox-table" id="tbl-shopee-month">
+          <thead><tr><th class="sortable" data-col="_k">เดือน<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="plan">Plan<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="actual">Actual<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="cancel">Cancel<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="util">Util %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="rate">Cancel %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="logs">รายการยกเลิก<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="sub">มีคนแทน<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="subr">% มีคนแทน<i class="sort-icon">↕</i></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ox-table-wrap">
+      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">รายการยกเลิก Shopee</span><span class="ox-filter-bar__meta">ล่าสุดก่อน · กดหัวคอลัมน์เพื่อเรียง</span></div>
+      <div class="ox-scroll is-tall">
+        <table class="ox-table" id="tbl-shopee-log">
+          <thead><tr><th class="sortable" data-col="month">เดือน<i class="sort-icon">↕</i></th><th class="sortable" data-col="_d">วันที่<i class="sort-icon">↕</i></th><th class="sortable" data-col="weekday">วัน<i class="sort-icon">↕</i></th><th class="sortable" data-col="timing">เวลา<i class="sort-icon">↕</i></th><th class="sortable" data-col="mc_name">MC<i class="sort-icon">↕</i></th><th class="sortable" data-col="reason">เหตุผล<i class="sort-icon">↕</i></th><th class="sortable" data-col="replacement">คนแทน<i class="sort-icon">↕</i></th><th>หมายเหตุ</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TIKTOK ══════════════════════════════════════════════════════ -->
+  <div id="tab-tiktok" class="ox-tab-panel">
+    <div class="ox-filter-bar">
+      <span class="ox-filter-label">เดือน</span>
+      <select class="ox-control" id="tiktok-month-filter" onchange="renderTikTok()"><option value="ALL">ทุกเดือน</option></select>
+      <span class="ox-filter-label">MC</span>
+      <select class="ox-control" id="tiktok-mc-filter" onchange="renderTikTok()"><option value="ALL">ทั้งหมด</option></select>
+      <span class="ox-filter-bar__meta" id="tiktok-meta"></span>
+    </div>
+
+    <div class="ox-kpi-grid" id="tiktok-kpis"></div>
+
+    <div class="ox-chart is-wide">
+      <div class="ox-chart__head"><div><div class="ox-chart__title">TikTok — แนวโน้มรายเดือน</div><div class="ox-chart__sub">Plan / Actual / Cancel (slot) และจำนวนรายการยกเลิก · กรอง MC ได้</div></div></div>
+      <div class="ox-legend">
+        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Plan</span>
+        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>Actual</span>
+        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-4)"></span>Cancel (slot)</span>
+        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-3)"></span>รายการยกเลิก (log)</span>
+      </div>
+      <div class="ox-chart__canvas"><canvas id="chart-tiktok-trend"></canvas></div>
+    </div>
+
+    <div class="ox-chart-grid">
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">เหตุผลการยกเลิก</div><div class="ox-chart__sub">Top 10 · จำนวนครั้ง (% ของรายการยกเลิก)</div></div></div>
+        <div class="ox-chart__canvas" style="height:300px"><canvas id="chart-tiktok-reason"></canvas></div>
+      </div>
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">MC ที่ยกเลิกมากที่สุด</div><div class="ox-chart__sub">Top 12 · จำนวนรายการยกเลิก</div></div></div>
+        <div class="ox-chart__canvas" style="height:300px"><canvas id="chart-tiktok-mc"></canvas></div>
+      </div>
+    </div>
+    <div class="ox-chart-grid">
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">รอบเวลาที่ยกเลิก</div><div class="ox-chart__sub">เรียงตามเวลาไลฟ์</div></div></div>
+        <div class="ox-chart__canvas"><canvas id="chart-tiktok-slot"></canvas></div>
+      </div>
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">วันในสัปดาห์ที่ยกเลิก</div><div class="ox-chart__sub">นับจากวันที่ในชีต</div></div></div>
+        <div class="ox-chart__canvas"><canvas id="chart-tiktok-weekday"></canvas></div>
+      </div>
+    </div>
+    <div class="ox-chart-grid">
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">คนแทนที่มาแทนบ่อยที่สุด</div><div class="ox-chart__sub">Top 12 · จำนวนครั้งที่ไปแทน</div></div></div>
+        <div class="ox-chart__canvas" style="height:300px"><canvas id="chart-tiktok-sub"></canvas></div>
+      </div>
+      <div class="ox-chart ox-chart--note">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">อ่านค่าอย่างไร</div></div></div>
+        <ul class="ox-notes">
+          <li><b>Cancel (slot)</b> มาจากแท็บ TikTok Plan (คอลัมน์ยกเลิกไลฟ์) ใช้คำนวณ Cancel Rate</li>
+          <li><b>รายการยกเลิก (log)</b> มาจากแท็บ TikTok Live Cancellation นับทีละครั้ง ใช้แยกเหตุผล เวลา วัน และคนแทน</li>
+          <li><b>Utilization</b> = Actual ÷ Plan · <b>Cancel Rate</b> = Cancel ÷ Plan</li>
+          <li><b>มีคนแทน</b> = รายการยกเลิกที่มีชื่อในคอลัมน์คนแทน</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="ox-table-wrap">
+      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">ผลงานราย MC</span><span class="ox-filter-bar__meta">ตามเดือนที่เลือก</span></div>
+      <div class="ox-scroll">
+        <table class="ox-table" id="tbl-tiktok-mc">
+          <thead><tr><th class="sortable" data-col="mc_name">MC<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="plan">Plan<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="actual">Actual<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="cancel">Cancel<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="util">Util %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="rate">Cancel %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="logs">รายการยกเลิก<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="covered">มีคนแทน<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="covering">ไปแทนคนอื่น<i class="sort-icon">↕</i></th><th class="sortable" data-col="top_reason">เหตุผลหลัก<i class="sort-icon">↕</i></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ox-table-wrap">
+      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">สรุปรายเดือน</span><span class="ox-filter-bar__meta">ทุกเดือน · กรอง MC ได้</span></div>
+      <div class="ox-scroll">
+        <table class="ox-table" id="tbl-tiktok-month">
+          <thead><tr><th class="sortable" data-col="_k">เดือน<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="plan">Plan<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="actual">Actual<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="cancel">Cancel<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="util">Util %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="rate">Cancel %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="logs">รายการยกเลิก<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="sub">มีคนแทน<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="subr">% มีคนแทน<i class="sort-icon">↕</i></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ox-table-wrap">
+      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">รายการยกเลิก TikTok</span><span class="ox-filter-bar__meta">ล่าสุดก่อน · กดหัวคอลัมน์เพื่อเรียง</span></div>
+      <div class="ox-scroll is-tall">
+        <table class="ox-table" id="tbl-tiktok-log">
+          <thead><tr><th class="sortable" data-col="month">เดือน<i class="sort-icon">↕</i></th><th class="sortable" data-col="_d">วันที่<i class="sort-icon">↕</i></th><th class="sortable" data-col="weekday">วัน<i class="sort-icon">↕</i></th><th class="sortable" data-col="timing">เวลา<i class="sort-icon">↕</i></th><th class="sortable" data-col="mc_name">MC<i class="sort-icon">↕</i></th><th class="sortable" data-col="reason">เหตุผล<i class="sort-icon">↕</i></th><th class="sortable" data-col="replacement">คนแทน<i class="sort-icon">↕</i></th><th>หมายเหตุ</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -622,141 +687,119 @@ function renderExec(){
   }
 }
 
-// ── Shopee Cancel ─────────────────────────────────────────────────────────
-function renderShopeeCancel(){
-  var month=getVal('shopee-month-filter'), mc=getVal('shopee-mc-filter');
-  var rows=filterCancel('SHOPEE',month,mc);
-  var metaEl=document.getElementById('shopee-meta');
-  if(metaEl) metaEl.textContent=rows.length+' รายการ';
-
-  var allMCs=unique(RAW.cancel.filter(function(r){return r.platform==='SHOPEE';}).map(function(r){return r.mc_name;})).sort();
-  var shopeeMonths=sortMonths(unique(RAW.cancel.filter(function(r){return r.platform==='SHOPEE';}).map(function(r){return r.month;})));
-  var months=month==='ALL'?shopeeMonths:[month];
-  var datasets=allMCs.map(function(m,i){
-    return {label:m,data:months.map(function(mo){return filterCancel('SHOPEE',mo,m).length;}),
-      backgroundColor:cv(CHART_COLORS[i%CHART_COLORS.length])+'cc',borderRadius:3,borderSkipped:false};
-  });
-  makeChart('chart-shopee-mc','bar',months.map(function(m){return MONTH_SHORT[m]||m;}),datasets,
-    {scales:{x:{stacked:true},y:{beginAtZero:true,stacked:true}}});
-
-  var cols=[
-    {key:'month',label:'เดือน'},{key:'date',label:'วันที่'},{key:'timing',label:'เวลา'},
-    {key:'mc_name',label:'MC'},{key:'reason',label:'เหตุผล'},
-    {key:'replacement',label:'คนแทน'},{key:'note',label:'หมายเหตุ'}
-  ];
-  function renderRows(r){
-    if(!r.length) return '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--omnix-fg-muted)">ไม่มีข้อมูล</td></tr>';
-    return r.map(function(x){
-      return '<tr><td>'+x.month+'</td><td>'+x.date+'</td><td>'+x.timing+'</td><td>'+x.mc_name+'</td><td>'+(x.reason||'-')+'</td><td>'+(x.replacement||'-')+'</td><td style="color:var(--omnix-fg-muted);font-size:12px">'+(x.note||'-')+'</td></tr>';
-    }).join('');
-  }
-  var tbl=document.getElementById('tbl-shopee-cancel');
-  if(tbl){ var tb=tbl.querySelector('tbody'); if(!tb){tb=document.createElement('tbody');tbl.appendChild(tb);} tb.innerHTML=renderRows(rows); makeSortable('tbl-shopee-cancel',rows,cols,renderRows); }
+// ── Platform tabs (Shopee / TikTok) ───────────────────────────────────────
+var PLAT_COLOR = {SHOPEE:'--omnix-chart-1', TIKTOK:'--omnix-chart-2'};
+var WD_TH = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+var WD_ORDER = [1,2,3,4,5,6,0];
+function fmtN(n){ return Number(n||0).toLocaleString('th-TH'); }
+function pct(a,b){ return b>0 ? (a/b*100) : null; }
+function fmtP(v){ return v==null ? '—' : v.toFixed(1)+'%'; }
+function esc(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function parseD(s){ var m=String(s||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  m=String(s||'').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); return m?new Date(+m[1],+m[2]-1,+m[3]):null; }
+function dateKey(s){ var d=parseD(s); return d?d.getTime():0; }
+function slotKey(t){ var m=String(t||'').match(/^(\d{1,2}):/); return m?((+m[1]+18)%24):99; }
+function countBy(rows, fn){ var m={}; rows.forEach(function(r){ var k=fn(r); if(k==null) return; m[k]=(m[k]||0)+1; }); return m; }
+function topEntries(m, n){ return Object.keys(m).map(function(k){return {k:k,n:m[k]};}).sort(function(a,b){return b.n-a.n;}).slice(0,n||999); }
+function fillTable(id, rows, cols, rowFn, colspan){
+  var tbl=document.getElementById(id); if(!tbl) return;
+  var render=function(r){ return r.length ? r.map(rowFn).join('') : '<tr><td colspan="'+colspan+'" style="text-align:center;padding:32px;color:var(--omnix-fg-muted)">ไม่มีข้อมูลในช่วงที่เลือก</td></tr>'; };
+  var tb=tbl.querySelector('tbody'); if(!tb){ tb=document.createElement('tbody'); tbl.appendChild(tb); }
+  tb.innerHTML=render(rows); makeSortable(id, rows, cols, render);
 }
+function barCell(v, max, color){ return '<div class="ox-bar-wrap"><div class="ox-bar-bg"><div class="ox-bar-fill" style="width:'+(max>0?(v/max*100).toFixed(0):0)+'%;background:var('+color+')"></div></div></div>'; }
+function emptyChart(id, on){ var c=document.getElementById(id); if(!c) return; var w=c.parentNode, e=w.querySelector('.ox-chart__empty');
+  if(on){ if(!e){ e=document.createElement('div'); e.className='ox-chart__empty'; e.textContent='ไม่มีข้อมูลในช่วงที่เลือก'; w.appendChild(e);} c.style.visibility='hidden'; }
+  else { if(e) e.remove(); c.style.visibility=''; } }
 
-// ── TikTok Cancel ─────────────────────────────────────────────────────────
-function renderTikTokCancel(){
-  var month=getVal('tiktok-month-filter'), mc=getVal('tiktok-mc-filter');
-  var rows=filterCancel('TIKTOK',month,mc);
-  var metaEl=document.getElementById('tiktok-meta');
-  if(metaEl) metaEl.textContent=rows.length+' รายการ';
+function renderPlatform(plat){
+  var k=plat.toLowerCase(), color=PLAT_COLOR[plat], name=plat==='SHOPEE'?'Shopee':'TikTok';
+  var month=getVal(k+'-month-filter'), mc=getVal(k+'-mc-filter');
+  var planAll=RAW.plan.filter(function(r){ return r.platform===plat && (mc==='ALL'||r.mc_name===mc); });
+  var cancelAll=RAW.cancel.filter(function(r){ return r.platform===plat && (mc==='ALL'||r.mc_name===mc); });
+  var plan=planAll.filter(function(r){ return month==='ALL'||r.month===month; });
+  var canc=cancelAll.filter(function(r){ return month==='ALL'||r.month===month; });
+  var months=sortMonths(unique(RAW.plan.filter(function(r){return r.platform===plat;}).map(function(r){return r.month;})
+               .concat(RAW.cancel.filter(function(r){return r.platform===plat;}).map(function(r){return r.month;}))));
+  var range=month==='ALL'?(months.length?months[0]+' – '+months[months.length-1]:''):month;
 
-  var allMCs=unique(RAW.cancel.filter(function(r){return r.platform==='TIKTOK';}).map(function(r){return r.mc_name;})).sort();
-  var tiktokMonths=sortMonths(unique(RAW.cancel.filter(function(r){return r.platform==='TIKTOK';}).map(function(r){return r.month;})));
-  var months=month==='ALL'?tiktokMonths:[month];
-  var datasets=allMCs.map(function(m,i){
-    return {label:m,data:months.map(function(mo){return filterCancel('TIKTOK',mo,m).length;}),
-      backgroundColor:cv(CHART_COLORS[i%CHART_COLORS.length])+'cc',borderRadius:3,borderSkipped:false};
-  });
-  makeChart('chart-tiktok-mc','bar',months.map(function(m){return MONTH_SHORT[m]||m;}),datasets,
-    {scales:{x:{stacked:true},y:{beginAtZero:true,stacked:true}}});
+  // KPI
+  var tP=0,tA=0,tC=0; plan.forEach(function(r){ tP+=r.plan; tA+=r.actual; tC+=r.cancel; });
+  var withSub=canc.filter(function(r){return r.replacement;}).length;
+  var util=pct(tA,tP), rate=pct(tC,tP), subR=pct(withSub,canc.length);
+  var mcCount=unique(plan.map(function(r){return r.mc_name;})).length;
+  document.getElementById(k+'-kpis').innerHTML=
+    '<div class="ox-kpi"><div class="ox-kpi__label">Plan Slots (จอง)</div><div class="ox-kpi__value">'+(plan.length?fmtN(tP):'—')+'</div><div class="ox-kpi__delta is-neutral">'+mcCount+' MC · '+esc(range)+'</div></div>'+
+    '<div class="ox-kpi"><div class="ox-kpi__label">Actual Slots (ไลฟ์จริง)</div><div class="ox-kpi__value">'+(plan.length?fmtN(tA):'—')+'</div><div class="ox-kpi__delta is-up">▲ '+fmtP(util)+' Utilization</div></div>'+
+    '<div class="ox-kpi"><div class="ox-kpi__label">Cancel Slots (ยกเลิก)</div><div class="ox-kpi__value">'+(plan.length?fmtN(tC):'—')+'</div><div class="ox-kpi__delta is-down">▼ '+fmtP(rate)+' Cancel Rate</div></div>'+
+    '<div class="ox-kpi"><div class="ox-kpi__label">รายการยกเลิก (Log)</div><div class="ox-kpi__value">'+fmtN(canc.length)+'</div><div class="ox-kpi__delta '+(subR!=null&&subR>=50?'is-up':'is-down')+'">'+(subR!=null&&subR>=50?'▲ ':'▼ ')+'มีคนแทน '+fmtP(subR)+' ('+fmtN(withSub)+')</div></div>';
+  var meta=document.getElementById(k+'-meta'); if(meta) meta.textContent='Plan '+fmtN(plan.length)+' แถว · ยกเลิก '+fmtN(canc.length)+' รายการ';
 
-  var cols=[
-    {key:'month'},{key:'date'},{key:'timing'},{key:'mc_name'},
-    {key:'reason'},{key:'replacement'},{key:'note'}
-  ];
-  function renderRows(r){
-    if(!r.length) return '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--omnix-fg-muted)">ไม่มีข้อมูล</td></tr>';
-    return r.map(function(x){
-      return '<tr><td>'+x.month+'</td><td>'+x.date+'</td><td>'+x.timing+'</td><td>'+x.mc_name+'</td><td>'+(x.reason||'-')+'</td><td>'+(x.replacement||'-')+'</td><td style="color:var(--omnix-fg-muted);font-size:12px">'+(x.note||'-')+'</td></tr>';
-    }).join('');
-  }
-  var tbl=document.getElementById('tbl-tiktok-cancel');
-  if(tbl){ var tb=tbl.querySelector('tbody'); if(!tb){tb=document.createElement('tbody');tbl.appendChild(tb);} tb.innerHTML=renderRows(rows); makeSortable('tbl-tiktok-cancel',rows,cols,renderRows); }
+  // 1) Monthly trend (all months, MC filter applied)
+  var mm={}; months.forEach(function(m){ mm[m]={month:m,plan:0,actual:0,cancel:0,logs:0,sub:0}; });
+  planAll.forEach(function(r){ if(mm[r.month]){ mm[r.month].plan+=r.plan; mm[r.month].actual+=r.actual; mm[r.month].cancel+=r.cancel; } });
+  cancelAll.forEach(function(r){ if(mm[r.month]){ mm[r.month].logs++; if(r.replacement) mm[r.month].sub++; } });
+  var mArr=months.map(function(m){ return mm[m]; });
+  makeChart('chart-'+k+'-trend','line',months.map(function(m){return MONTH_SHORT[m]||m;}),[
+    {label:'Plan',data:mArr.map(function(r){return r.plan;}),borderColor:cv('--omnix-chart-1'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'Actual',data:mArr.map(function(r){return r.actual;}),borderColor:cv('--omnix-chart-2'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'Cancel (slot)',data:mArr.map(function(r){return r.cancel;}),borderColor:cv('--omnix-chart-4'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'รายการยกเลิก (log)',data:mArr.map(function(r){return r.logs;}),borderColor:cv('--omnix-chart-3'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,borderDash:[5,4]}
+  ],{scales:{y:{beginAtZero:true}}});
+
+  var hbar=function(id,entries,unit){
+    emptyChart('chart-'+k+'-'+id, !entries.length);
+    makeChart('chart-'+k+'-'+id,'bar',entries.map(function(e){return e.k;}),[{label:unit||'จำนวนครั้ง',data:entries.map(function(e){return e.n;}),
+      backgroundColor:cv(color),borderRadius:4,borderSkipped:false,barPercentage:.8}],
+      {indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}},
+       plugins:{tooltip:{callbacks:{label:function(c){return ' '+c.raw+' ครั้ง ('+fmtP(pct(c.raw,canc.length))+')';}}}}});
+  };
+  var vbar=function(id,labels,data){
+    emptyChart('chart-'+k+'-'+id, !canc.length);
+    makeChart('chart-'+k+'-'+id,'bar',labels,[{label:'จำนวนครั้ง',data:data,backgroundColor:cv(color),borderRadius:4,borderSkipped:false}],
+      {scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}},
+       plugins:{tooltip:{callbacks:{label:function(c){return ' '+c.raw+' ครั้ง ('+fmtP(pct(c.raw,canc.length))+')';}}}}});
+  };
+  // 2) Reason
+  hbar('reason', topEntries(countBy(canc,function(r){return r.reason||'ไม่ระบุ';}),10));
+  // 3) Time slot (ordered by time)
+  var slots=countBy(canc,function(r){ var t=(r.timing||'').replace(/\s+/g,' ').trim(); return t||'ไม่ระบุ'; });
+  var slotKeys=Object.keys(slots).sort(function(a,b){return slotKey(a)-slotKey(b);});
+  vbar('slot', slotKeys.map(function(t){return t.replace(' - ','–');}), slotKeys.map(function(t){return slots[t];}));
+  // 4) Weekday
+  var wd=countBy(canc,function(r){ var d=parseD(r.date); return d?d.getDay():null; });
+  vbar('weekday', WD_ORDER.map(function(i){return WD_TH[i];}), WD_ORDER.map(function(i){return wd[i]||0;}));
+  // 5) Cancel by MC
+  hbar('mc', topEntries(countBy(canc,function(r){return r.mc_name;}),12));
+  // 6) Who substitutes most
+  hbar('sub', topEntries(countBy(canc,function(r){return r.replacement||null;}),12));
+
+  // Table: MC performance
+  var mcm={};
+  function mcRow(n){ return mcm[n]||(mcm[n]={mc_name:n,plan:0,actual:0,cancel:0,util:null,rate:null,logs:0,covered:0,covering:0,reasons:{},top_reason:''}); }
+  plan.forEach(function(r){ var o=mcRow(r.mc_name); o.plan+=r.plan; o.actual+=r.actual; o.cancel+=r.cancel; });
+  canc.forEach(function(r){ var o=mcRow(r.mc_name); o.logs++; if(r.replacement) o.covered++; var rs=r.reason||'ไม่ระบุ'; o.reasons[rs]=(o.reasons[rs]||0)+1; });
+  RAW.cancel.filter(function(r){ return r.platform===plat && r.replacement && (month==='ALL'||r.month===month); })
+    .forEach(function(r){ if(mc==='ALL'||r.replacement===mc) mcRow(r.replacement).covering++; });
+  var mcArr=Object.keys(mcm).map(function(n){ var o=mcm[n]; o.util=pct(o.actual,o.plan); o.rate=pct(o.cancel,o.plan);
+    var t=topEntries(o.reasons,1)[0]; o.top_reason=t?t.k+' ('+t.n+')':''; return o; }).sort(function(a,b){return b.plan-a.plan||b.logs-a.logs;});
+  var maxPlan=Math.max.apply(null,mcArr.map(function(o){return o.plan;}).concat([1]));
+  fillTable('tbl-'+k+'-mc', mcArr, [{key:'mc_name'},{key:'plan',numeric:true},{key:'actual',numeric:true},{key:'cancel',numeric:true},{key:'util',numeric:true},{key:'rate',numeric:true},{key:'logs',numeric:true},{key:'covered',numeric:true},{key:'covering',numeric:true},{key:'top_reason'}],
+    function(o){ return '<tr><td>'+esc(o.mc_name)+'</td><td class="is-num"><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><span>'+fmtN(o.plan)+'</span><span style="width:60px">'+barCell(o.plan,maxPlan,color)+'</span></div></td><td class="is-num">'+fmtN(o.actual)+'</td><td class="is-num">'+fmtN(o.cancel)+'</td><td class="is-num">'+fmtP(o.util)+'</td><td class="is-num">'+fmtP(o.rate)+'</td><td class="is-num">'+fmtN(o.logs)+'</td><td class="is-num">'+fmtN(o.covered)+'</td><td class="is-num">'+fmtN(o.covering)+'</td><td style="font-size:12px;color:var(--omnix-fg-muted)">'+esc(o.top_reason||'-')+'</td></tr>'; }, 10);
+
+  // Table: monthly summary (all months)
+  var monRows=mArr.map(function(r){ return {month:r.month,_k:monKey(r.month),plan:r.plan,actual:r.actual,cancel:r.cancel,util:pct(r.actual,r.plan),rate:pct(r.cancel,r.plan),logs:r.logs,sub:r.sub,subr:pct(r.sub,r.logs)}; });
+  fillTable('tbl-'+k+'-month', monRows, [{key:'_k',numeric:true},{key:'plan',numeric:true},{key:'actual',numeric:true},{key:'cancel',numeric:true},{key:'util',numeric:true},{key:'rate',numeric:true},{key:'logs',numeric:true},{key:'sub',numeric:true},{key:'subr',numeric:true}],
+    function(r){ return '<tr'+(month!=='ALL'&&r.month===month?' class="is-hl"':'')+'><td>'+esc(r.month)+'</td><td class="is-num">'+fmtN(r.plan)+'</td><td class="is-num">'+fmtN(r.actual)+'</td><td class="is-num">'+fmtN(r.cancel)+'</td><td class="is-num">'+fmtP(r.util)+'</td><td class="is-num">'+fmtP(r.rate)+'</td><td class="is-num">'+fmtN(r.logs)+'</td><td class="is-num">'+fmtN(r.sub)+'</td><td class="is-num">'+fmtP(r.subr)+'</td></tr>'; }, 9);
+
+  // Table: cancel log detail
+  var logRows=canc.map(function(r){ return Object.assign({_d:dateKey(r.date)+slotKey(r.timing), weekday:(function(){var d=parseD(r.date);return d?WD_TH[d.getDay()]:'';})()}, r); })
+    .sort(function(a,b){return b._d-a._d;});
+  fillTable('tbl-'+k+'-log', logRows, [{key:'month'},{key:'_d',numeric:true},{key:'weekday'},{key:'timing'},{key:'mc_name'},{key:'reason'},{key:'replacement'},{key:'note'}],
+    function(x){ return '<tr><td>'+esc(x.month)+'</td><td class="ox-num">'+esc(x.date)+'</td><td>'+esc(x.weekday)+'</td><td>'+esc(x.timing)+'</td><td>'+esc(x.mc_name)+'</td><td>'+esc(x.reason||'ไม่ระบุ')+'</td><td>'+(x.replacement?esc(x.replacement):'<span style="color:var(--omnix-fg-muted)">ไม่มี</span>')+'</td><td style="color:var(--omnix-fg-muted);font-size:12px">'+esc(x.note||'-')+'</td></tr>'; }, 8);
 }
-
-// ── Plan Overview ─────────────────────────────────────────────────────────
-function renderPlan(){
-  var plat=getVal('plan-platform-filter');
-  var month=getVal('plan-month-filter');
-  var mc=getVal('plan-mc-filter');
-  var label=plat==='ALL'?'Shopee + TikTok':plat;
-  var titleEl=document.getElementById('plan-chart-title');
-  if(titleEl) titleEl.textContent='Plan Overview — '+label;
-
-  var filtered=RAW.plan.filter(function(r){
-    return (plat==='ALL'||r.platform===plat)&&
-           (month==='ALL'||r.month===month)&&
-           (mc==='ALL'||r.mc_name===mc);
-  });
-  var planMonths=sortMonths(unique(RAW.plan.map(function(r){return r.month;})));
-  var months=month==='ALL'?planMonths:[month];
-  var metaEl=document.getElementById('plan-meta');
-  if(metaEl) metaEl.textContent=filtered.length+' รายการ';
-
-  var aggMonths=months.map(function(mo){
-    var r=filtered.filter(function(x){return x.month===mo;});
-    return {plan:r.reduce(function(s,x){return s+x.plan;},0),
-            actual:r.reduce(function(s,x){return s+x.actual;},0),
-            cancel:r.reduce(function(s,x){return s+x.cancel;},0)};
-  });
-  makeChart('chart-plan-trend','bar',months.map(function(m){return MONTH_SHORT[m]||m;}),[
-    {label:'Plan',data:aggMonths.map(function(r){return r.plan;}),backgroundColor:cv('--omnix-chart-1')+'cc',borderRadius:3,borderSkipped:false},
-    {label:'Actual',data:aggMonths.map(function(r){return r.actual;}),backgroundColor:cv('--omnix-chart-2')+'cc',borderRadius:3,borderSkipped:false},
-    {label:'Cancel',data:aggMonths.map(function(r){return r.cancel;}),backgroundColor:cv('--omnix-chart-4')+'cc',borderRadius:3,borderSkipped:false}
-  ],{scales:{x:{stacked:false},y:{beginAtZero:true}}});
-
-  var mcMap={};
-  filtered.forEach(function(r){
-    if(!mcMap[r.mc_name]) mcMap[r.mc_name]={mc_name:r.mc_name,plan:0,actual:0,cancel:0};
-    mcMap[r.mc_name].plan+=r.plan; mcMap[r.mc_name].actual+=r.actual; mcMap[r.mc_name].cancel+=r.cancel;
-  });
-  var mcSorted=Object.values(mcMap).sort(function(a,b){return b.plan-a.plan;});
-  makeChart('chart-plan-mc','bar',mcSorted.map(function(r){return r.mc_name;}),[
-    {label:'Plan',data:mcSorted.map(function(r){return r.plan;}),backgroundColor:cv('--omnix-chart-1')+'cc',borderRadius:3,borderSkipped:false}
-  ],{indexAxis:'y',scales:{x:{beginAtZero:true}}});
-  makeChart('chart-util','bar',mcSorted.map(function(r){return r.mc_name;}),[
-    {label:'Util%',data:mcSorted.map(function(r){return r.plan>0?+(r.actual/r.plan*100).toFixed(1):0;}),backgroundColor:cv('--omnix-chart-2')+'cc',borderRadius:3,borderSkipped:false}
-  ],{indexAxis:'y',scales:{x:{beginAtZero:true,max:100,ticks:{callback:function(v){return v+'%';}}}}});
-
-  // Plan detail table with sort
-  var planCols=[
-    {key:'month'},{key:'platform'},{key:'mc_name',label:'MC'},
-    {key:'plan',numeric:true},{key:'cancel',numeric:true},
-    {key:'actual',numeric:true},{key:'util',numeric:true}
-  ];
-  var planRows=filtered.map(function(r){
-    return {month:r.month,platform:r.platform,mc_name:r.mc_name,
-            plan:r.plan,cancel:r.cancel,actual:r.actual,
-            util:r.plan>0?+(r.actual/r.plan*100).toFixed(0):0};
-  });
-  function renderPlanRows(rows){
-    if(!rows.length) return '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--omnix-fg-muted)">ไม่มีข้อมูล</td></tr>';
-    return rows.map(function(r){
-      return '<tr><td>'+r.month+'</td><td><span class="ox-badge ox-badge--'+r.platform.toLowerCase()+'">'+r.platform+'</span></td><td>'+r.mc_name+'</td><td class="is-num">'+r.plan+'</td><td class="is-num">'+(r.cancel||'-')+'</td><td class="is-num">'+(r.actual||'-')+'</td><td class="is-num">'+(r.plan>0?r.util+'%':'-')+'</td></tr>';
-    }).join('');
-  }
-  var tbl=document.getElementById('tbl-plan');
-  if(tbl){ var tb=tbl.querySelector('tbody'); if(!tb){tb=document.createElement('tbody');tbl.appendChild(tb);} tb.innerHTML=renderPlanRows(planRows); makeSortable('tbl-plan',planRows,planCols,renderPlanRows); }
-}
-
-// ── Populate MC for Plan ──────────────────────────────────────────────────
-function updatePlanMCFilter(){
-  var plat=getVal('plan-platform-filter');
-  var mcs=unique(RAW.plan.filter(function(r){return plat==='ALL'||r.platform===plat;}).map(function(r){return r.mc_name;})).sort();
-  populateSelect('plan-mc-filter', mcs);
-  renderPlan();
-}
+function renderShopee(){ renderPlatform('SHOPEE'); }
+function renderTikTok(){ renderPlatform('TIKTOK'); }
 
 // ── Tab Switch ────────────────────────────────────────────────────────────
 function switchTab(id,btn){
@@ -766,9 +809,8 @@ function switchTab(id,btn){
   btn.classList.add('is-active');
   setTimeout(function(){
     if(id==='exec') renderExec();
-    else if(id==='shopee') renderShopeeCancel();
-    else if(id==='tiktok') renderTikTokCancel();
-    else if(id==='plan') renderPlan();
+    else if(id==='shopee') renderShopee();
+    else if(id==='tiktok') renderTikTok();
   },10);
 }
 
@@ -793,7 +835,7 @@ var SHEET_TABS = [
 ];
 var NAME_MAP = {'PC LAED':'PC LEAD','CS DAOJAI':'CS DAO','LEAD':'PC LEAD','DAO':'CS DAO','AON':'CS AON','FRING':'OP FRING','KUKKIK':'PC KUKKIK','TANGMO':'OP TANGMO','ANN':'CT ANN','AUM':'CS AUM'};
 var STORE_KEY = 'nineplus_live_report_v2';
-var BUILD_TS = 1794193981666;
+var BUILD_TS = 1794194866825;
 var syncing = false;
 var AUTO_SYNC_MS = 60000;          // ดึงอัตโนมัติทุก 1 นาที
 var lastSyncTs = 0, lastSig = '', lastDataTs = 0;
@@ -871,17 +913,13 @@ function loadLocal(){ try{ var s=localStorage.getItem(STORE_KEY); if(!s) return 
 function activeTabId(){ var p=document.querySelector('.ox-tab-panel.is-active'); return p?p.id.replace('tab-',''):'exec'; }
 function refreshAll(){
   buildMonths();
-  var sm=sortMonths(unique(RAW.cancel.filter(function(r){return r.platform==='SHOPEE';}).map(function(r){return r.month;})));
-  var tm=sortMonths(unique(RAW.cancel.filter(function(r){return r.platform==='TIKTOK';}).map(function(r){return r.month;})));
-  var pm=sortMonths(unique(RAW.plan.map(function(r){return r.month;})));
-  populateSelect('shopee-month-filter', sm);
-  populateSelect('tiktok-month-filter', tm);
-  populateSelect('plan-month-filter', pm);
-  populateSelect('shopee-mc-filter', unique(RAW.cancel.filter(function(r){return r.platform==='SHOPEE';}).map(function(r){return r.mc_name;})).sort());
-  populateSelect('tiktok-mc-filter', unique(RAW.cancel.filter(function(r){return r.platform==='TIKTOK';}).map(function(r){return r.mc_name;})).sort());
-  populateSelect('plan-mc-filter', unique(RAW.plan.map(function(r){return r.mc_name;})).sort());
+  ['SHOPEE','TIKTOK'].forEach(function(p){
+    var k=p.toLowerCase();
+    populateSelect(k+'-month-filter', sortMonths(unique(RAW.plan.concat(RAW.cancel).filter(function(r){return r.platform===p;}).map(function(r){return r.month;}))));
+    populateSelect(k+'-mc-filter', unique(RAW.plan.concat(RAW.cancel).filter(function(r){return r.platform===p;}).map(function(r){return r.mc_name;})).sort());
+  });
   var id=activeTabId();
-  if(id==='exec') renderExec(); else if(id==='shopee') renderShopeeCancel(); else if(id==='tiktok') renderTikTokCancel(); else if(id==='plan') renderPlan();
+  if(id==='exec') renderExec(); else if(id==='shopee') renderShopee(); else if(id==='tiktok') renderTikTok();
 }
 
 function syncFromSheet(silent){
