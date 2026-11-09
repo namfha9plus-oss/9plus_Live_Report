@@ -508,10 +508,10 @@ function makeChart(id, type, labels, datasets, opts){
 // ── Helpers ───────────────────────────────────────────────────────────────
 function aggPlanByMonth(platform){
   var m={};
-  MONTHS.forEach(function(mo){ m[mo]={plan:0,cancel:0,actual:0}; });
+  MONTHS.forEach(function(mo){ m[mo]={plan:null,cancel:null,actual:null}; });
   RAW.plan.forEach(function(r){
     if((platform==='ALL'||r.platform===platform)&&m[r.month]){
-      m[r.month].plan+=r.plan; m[r.month].cancel+=r.cancel; m[r.month].actual+=r.actual;
+      var o=m[r.month]; o.plan=(o.plan||0)+r.plan; o.cancel=(o.cancel||0)+r.cancel; o.actual=(o.actual||0)+r.actual;
     }
   });
   return MONTHS.map(function(mo){ return m[mo]; });
@@ -633,7 +633,7 @@ function renderExec(){
   ],{scales:{x:{stacked:false},y:{beginAtZero:true}}});
 
   // Cancel rate chart
-  var rates=agg.map(function(r){return r.plan>0?+(r.cancel/r.plan*100).toFixed(1):0;});
+  var rates=agg.map(function(r){return r.plan>0?+(r.cancel/r.plan*100).toFixed(1):null;});
   makeChart('chart-rate','bar',labels,[
     {label:'Cancel Rate %',data:rates,backgroundColor:cv('--omnix-chart-3')+'cc',borderRadius:4,borderSkipped:false}
   ],{scales:{y:{beginAtZero:true,ticks:{callback:function(v){return v+'%';}}}}});
@@ -642,7 +642,7 @@ function renderExec(){
   var timingMap = {};
   cancelRows.forEach(function(r){
     var t = (r.timing||'').trim().replace(/\s+/g,' ');
-    if(!t||t==='-') t='ไม่ระบุ';
+    if(!t||t==='-') return;
     timingMap[t]=(timingMap[t]||0)+1;
   });
   var timingSorted = Object.keys(timingMap).map(function(k){ return {t:k,n:timingMap[k]}; })
@@ -691,8 +691,8 @@ function renderExec(){
 var PLAT_COLOR = {SHOPEE:'--omnix-chart-1', TIKTOK:'--omnix-chart-2'};
 var WD_TH = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
 var WD_ORDER = [1,2,3,4,5,6,0];
-function fmtN(n){ return Number(n||0).toLocaleString('th-TH'); }
-function pct(a,b){ return b>0 ? (a/b*100) : null; }
+function fmtN(n){ return n==null ? '—' : Number(n).toLocaleString('th-TH'); }
+function pct(a,b){ return (a!=null&&b>0) ? (a/b*100) : null; }
 function fmtP(v){ return v==null ? '—' : v.toFixed(1)+'%'; }
 function esc(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function parseD(s){ var m=String(s||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m) return new Date(+m[3],+m[2]-1,+m[1]);
@@ -729,16 +729,16 @@ function renderPlatform(plat){
   var util=pct(tA,tP), rate=pct(tC,tP), subR=pct(withSub,canc.length);
   var mcCount=unique(plan.map(function(r){return r.mc_name;})).length;
   document.getElementById(k+'-kpis').innerHTML=
-    '<div class="ox-kpi"><div class="ox-kpi__label">Plan Slots (จอง)</div><div class="ox-kpi__value">'+(plan.length?fmtN(tP):'—')+'</div><div class="ox-kpi__delta is-neutral">'+mcCount+' MC · '+esc(range)+'</div></div>'+
+    '<div class="ox-kpi"><div class="ox-kpi__label">Plan Slots (จอง)</div><div class="ox-kpi__value">'+(plan.length?fmtN(tP):'—')+'</div><div class="ox-kpi__delta is-neutral">'+(plan.length?mcCount+' MC · ':'')+esc(range)+'</div></div>'+
     '<div class="ox-kpi"><div class="ox-kpi__label">Actual Slots (ไลฟ์จริง)</div><div class="ox-kpi__value">'+(plan.length?fmtN(tA):'—')+'</div><div class="ox-kpi__delta is-up">▲ '+fmtP(util)+' Utilization</div></div>'+
     '<div class="ox-kpi"><div class="ox-kpi__label">Cancel Slots (ยกเลิก)</div><div class="ox-kpi__value">'+(plan.length?fmtN(tC):'—')+'</div><div class="ox-kpi__delta is-down">▼ '+fmtP(rate)+' Cancel Rate</div></div>'+
     '<div class="ox-kpi"><div class="ox-kpi__label">รายการยกเลิก (Log)</div><div class="ox-kpi__value">'+fmtN(canc.length)+'</div><div class="ox-kpi__delta '+(subR!=null&&subR>=50?'is-up':'is-down')+'">'+(subR!=null&&subR>=50?'▲ ':'▼ ')+'มีคนแทน '+fmtP(subR)+' ('+fmtN(withSub)+')</div></div>';
   var meta=document.getElementById(k+'-meta'); if(meta) meta.textContent='Plan '+fmtN(plan.length)+' แถว · ยกเลิก '+fmtN(canc.length)+' รายการ';
 
   // 1) Monthly trend (all months, MC filter applied)
-  var mm={}; months.forEach(function(m){ mm[m]={month:m,plan:0,actual:0,cancel:0,logs:0,sub:0}; });
-  planAll.forEach(function(r){ if(mm[r.month]){ mm[r.month].plan+=r.plan; mm[r.month].actual+=r.actual; mm[r.month].cancel+=r.cancel; } });
-  cancelAll.forEach(function(r){ if(mm[r.month]){ mm[r.month].logs++; if(r.replacement) mm[r.month].sub++; } });
+  var mm={}; months.forEach(function(m){ mm[m]={month:m,plan:null,actual:null,cancel:null,logs:null,sub:null}; });
+  planAll.forEach(function(r){ var o=mm[r.month]; if(o){ o.plan=(o.plan||0)+r.plan; o.actual=(o.actual||0)+r.actual; o.cancel=(o.cancel||0)+r.cancel; } });
+  cancelAll.forEach(function(r){ var o=mm[r.month]; if(o){ o.logs=(o.logs||0)+1; o.sub=(o.sub||0)+(r.replacement?1:0); } });
   var mArr=months.map(function(m){ return mm[m]; });
   makeChart('chart-'+k+'-trend','line',months.map(function(m){return MONTH_SHORT[m]||m;}),[
     {label:'Plan',data:mArr.map(function(r){return r.plan;}),borderColor:cv('--omnix-chart-1'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
@@ -761,9 +761,9 @@ function renderPlatform(plat){
        plugins:{tooltip:{callbacks:{label:function(c){return ' '+c.raw+' ครั้ง ('+fmtP(pct(c.raw,canc.length))+')';}}}}});
   };
   // 2) Reason
-  hbar('reason', topEntries(countBy(canc,function(r){return r.reason||'ไม่ระบุ';}),10));
+  hbar('reason', topEntries(countBy(canc,function(r){return r.reason||null;}),10));
   // 3) Time slot (ordered by time)
-  var slots=countBy(canc,function(r){ var t=(r.timing||'').replace(/\s+/g,' ').trim(); return t||'ไม่ระบุ'; });
+  var slots=countBy(canc,function(r){ var t=(r.timing||'').replace(/\s+/g,' ').trim(); return t||null; });
   var slotKeys=Object.keys(slots).sort(function(a,b){return slotKey(a)-slotKey(b);});
   vbar('slot', slotKeys.map(function(t){return t.replace(' - ','–');}), slotKeys.map(function(t){return slots[t];}));
   // 4) Weekday
@@ -778,7 +778,7 @@ function renderPlatform(plat){
   var mcm={};
   function mcRow(n){ return mcm[n]||(mcm[n]={mc_name:n,plan:0,actual:0,cancel:0,util:null,rate:null,logs:0,covered:0,covering:0,reasons:{},top_reason:''}); }
   plan.forEach(function(r){ var o=mcRow(r.mc_name); o.plan+=r.plan; o.actual+=r.actual; o.cancel+=r.cancel; });
-  canc.forEach(function(r){ var o=mcRow(r.mc_name); o.logs++; if(r.replacement) o.covered++; var rs=r.reason||'ไม่ระบุ'; o.reasons[rs]=(o.reasons[rs]||0)+1; });
+  canc.forEach(function(r){ var o=mcRow(r.mc_name); o.logs++; if(r.replacement) o.covered++; if(r.reason) o.reasons[r.reason]=(o.reasons[r.reason]||0)+1; });
   RAW.cancel.filter(function(r){ return r.platform===plat && r.replacement && (month==='ALL'||r.month===month); })
     .forEach(function(r){ if(mc==='ALL'||r.replacement===mc) mcRow(r.replacement).covering++; });
   var mcArr=Object.keys(mcm).map(function(n){ var o=mcm[n]; o.util=pct(o.actual,o.plan); o.rate=pct(o.cancel,o.plan);
@@ -788,7 +788,7 @@ function renderPlatform(plat){
     function(o){ return '<tr><td>'+esc(o.mc_name)+'</td><td class="is-num"><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><span>'+fmtN(o.plan)+'</span><span style="width:60px">'+barCell(o.plan,maxPlan,color)+'</span></div></td><td class="is-num">'+fmtN(o.actual)+'</td><td class="is-num">'+fmtN(o.cancel)+'</td><td class="is-num">'+fmtP(o.util)+'</td><td class="is-num">'+fmtP(o.rate)+'</td><td class="is-num">'+fmtN(o.logs)+'</td><td class="is-num">'+fmtN(o.covered)+'</td><td class="is-num">'+fmtN(o.covering)+'</td><td style="font-size:12px;color:var(--omnix-fg-muted)">'+esc(o.top_reason||'-')+'</td></tr>'; }, 10);
 
   // Table: monthly summary (all months)
-  var monRows=mArr.map(function(r){ return {month:r.month,_k:monKey(r.month),plan:r.plan,actual:r.actual,cancel:r.cancel,util:pct(r.actual,r.plan),rate:pct(r.cancel,r.plan),logs:r.logs,sub:r.sub,subr:pct(r.sub,r.logs)}; });
+  var monRows=mArr.filter(function(r){ return r.plan!=null||r.logs!=null; }).map(function(r){ return {month:r.month,_k:monKey(r.month),plan:r.plan,actual:r.actual,cancel:r.cancel,util:pct(r.actual,r.plan),rate:pct(r.cancel,r.plan),logs:r.logs,sub:r.sub,subr:pct(r.sub,r.logs)}; });
   fillTable('tbl-'+k+'-month', monRows, [{key:'_k',numeric:true},{key:'plan',numeric:true},{key:'actual',numeric:true},{key:'cancel',numeric:true},{key:'util',numeric:true},{key:'rate',numeric:true},{key:'logs',numeric:true},{key:'sub',numeric:true},{key:'subr',numeric:true}],
     function(r){ return '<tr'+(month!=='ALL'&&r.month===month?' class="is-hl"':'')+'><td>'+esc(r.month)+'</td><td class="is-num">'+fmtN(r.plan)+'</td><td class="is-num">'+fmtN(r.actual)+'</td><td class="is-num">'+fmtN(r.cancel)+'</td><td class="is-num">'+fmtP(r.util)+'</td><td class="is-num">'+fmtP(r.rate)+'</td><td class="is-num">'+fmtN(r.logs)+'</td><td class="is-num">'+fmtN(r.sub)+'</td><td class="is-num">'+fmtP(r.subr)+'</td></tr>'; }, 9);
 
@@ -796,7 +796,7 @@ function renderPlatform(plat){
   var logRows=canc.map(function(r){ return Object.assign({_d:dateKey(r.date)+slotKey(r.timing), weekday:(function(){var d=parseD(r.date);return d?WD_TH[d.getDay()]:'';})()}, r); })
     .sort(function(a,b){return b._d-a._d;});
   fillTable('tbl-'+k+'-log', logRows, [{key:'month'},{key:'_d',numeric:true},{key:'weekday'},{key:'timing'},{key:'mc_name'},{key:'reason'},{key:'replacement'},{key:'note'}],
-    function(x){ return '<tr><td>'+esc(x.month)+'</td><td class="ox-num">'+esc(x.date)+'</td><td>'+esc(x.weekday)+'</td><td>'+esc(x.timing)+'</td><td>'+esc(x.mc_name)+'</td><td>'+esc(x.reason||'ไม่ระบุ')+'</td><td>'+(x.replacement?esc(x.replacement):'<span style="color:var(--omnix-fg-muted)">ไม่มี</span>')+'</td><td style="color:var(--omnix-fg-muted);font-size:12px">'+esc(x.note||'-')+'</td></tr>'; }, 8);
+    function(x){ return '<tr><td>'+esc(x.month)+'</td><td class="ox-num">'+esc(x.date)+'</td><td>'+esc(x.weekday)+'</td><td>'+esc(x.timing)+'</td><td>'+esc(x.mc_name)+'</td><td>'+esc(x.reason||'-')+'</td><td>'+(x.replacement?esc(x.replacement):'-')+'</td><td style="color:var(--omnix-fg-muted);font-size:12px">'+esc(x.note||'-')+'</td></tr>'; }, 8);
 }
 function renderShopee(){ renderPlatform('SHOPEE'); }
 function renderTikTok(){ renderPlatform('TIKTOK'); }
@@ -835,7 +835,7 @@ var SHEET_TABS = [
 ];
 var NAME_MAP = {'PC LAED':'PC LEAD','CS DAOJAI':'CS DAO','LEAD':'PC LEAD','DAO':'CS DAO','AON':'CS AON','FRING':'OP FRING','KUKKIK':'PC KUKKIK','TANGMO':'OP TANGMO','ANN':'CT ANN','AUM':'CS AUM'};
 var STORE_KEY = 'nineplus_live_report_v2';
-var BUILD_TS = 1794194866825;
+var BUILD_TS = 1794195071542;
 var syncing = false;
 var AUTO_SYNC_MS = 60000;          // ดึงอัตโนมัติทุก 1 นาที
 var lastSyncTs = 0, lastSig = '', lastDataTs = 0;
@@ -869,6 +869,7 @@ function parseTab(tab, rows){
     var month=cell(r,0).toUpperCase(); if(!month) return;
     if(tab.kind==='plan'){
       var mc=normName(r[3]); if(!mc) return;
+      if(!cell(r,4)&&!cell(r,5)&&!cell(r,6)) return;   // ยังไม่กรอกตัวเลข = ไม่มีข้อมูล
       out.push({month:month, platform:(cell(r,1)||'SHOPEE').toUpperCase(), shop:cell(r,2), mc_name:mc,
                 plan:toNum(r[4]), cancel:toNum(r[5]), actual:toNum(r[6])});
     } else {
@@ -955,6 +956,7 @@ function init(){
   setupChartDefaults();
   var saved=loadLocal(), ts=BUILD_TS;
   if(saved&&saved.ts>BUILD_TS){ RAW=saved.data; ts=saved.ts; }
+  RAW.plan=RAW.plan.filter(function(r){ return r.plan||r.actual||r.cancel; });
   RAW.plan.forEach(function(r){ r.mc_name=normName(r.mc_name); });
   RAW.cancel.forEach(function(r){ r.mc_name=normName(r.mc_name); r.replacement=normName(r.replacement); });
   requestAnimationFrame(function(){
