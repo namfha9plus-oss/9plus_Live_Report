@@ -138,6 +138,13 @@ svg{display:inline-block;vertical-align:middle}
 .ox-chart__empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--omnix-fg-muted)}
 .ox-scroll.is-tall{max-height:560px;overflow:auto}
 .ox-scroll.is-tall thead th{position:sticky;top:0;z-index:1;background:var(--omnix-surface-2)}
+.ox-kpi,.ox-chart-grid>*{min-width:0}
+.ox-kpi__delta{flex-wrap:wrap;white-space:normal}
+.ox-chart-grid.is-top{align-items:start}
+#tbl-exec-compare td:first-child{white-space:nowrap;color:var(--omnix-fg-muted)}
+#tbl-exec-compare td,#tbl-exec-compare th{padding-top:9px;padding-bottom:9px}
+.ox-chart-grid.is-top .ox-chart__canvas{height:420px}
+@media(max-width:768px){.ox-chart-grid.is-top .ox-chart__canvas{height:260px}}
 .ox-notes{margin:12px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--omnix-fg-muted);line-height:1.6}
 .ox-notes b{color:var(--omnix-fg);font-weight:600}
 .ox-table tr.is-hl td{background:var(--omnix-accent-soft)}
@@ -185,79 +192,75 @@ svg{display:inline-block;vertical-align:middle}
   <!-- ══ EXEC ══════════════════════════════════════════════════════════ -->
   <div id="tab-exec" class="ox-tab-panel is-active">
     <div class="ox-filter-bar">
-      <span class="ox-filter-label">แพลตฟอร์ม</span>
-      <select class="ox-control" id="exec-platform-filter" onchange="renderExec()">
-        <option value="ALL">Shopee + TikTok</option>
-        <option value="SHOPEE">Shopee</option>
-        <option value="TIKTOK">TikTok</option>
-      </select>
+      <span class="ox-filter-label">เดือน</span>
+      <select class="ox-control" id="exec-month-filter" onchange="renderExec()"><option value="ALL">ทุกเดือน</option></select>
+      <span class="ox-filter-bar__meta" id="exec-meta"></span>
     </div>
 
     <div class="ox-kpi-grid" id="exec-kpis"></div>
 
-    <div class="ox-chart is-wide">
-      <div class="ox-chart__head">
-        <div><div class="ox-chart__title">แนวโน้มรายเดือน — Plan vs Actual vs Cancel</div>
-        <div class="ox-chart__sub">รวม Shopee + TikTok</div></div>
+      <div class="ox-chart is-wide">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">Cancel Rate รายเดือน — Shopee vs TikTok</div><div class="ox-chart__sub">Cancel ÷ Plan (%) · ทุกเดือน · เดือนที่ยังไม่มีตัวเลข Plan เว้นว่าง</div></div></div>
+        <div class="ox-legend"><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Shopee</span><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>TikTok</span></div>
+        <div class="ox-chart__canvas"><canvas id="chart-exec-rate"></canvas></div>
       </div>
-      <div class="ox-legend">
-        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Plan</span>
-        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>Actual</span>
-        <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-4)"></span>Cancel</span>
-      </div>
-      <div class="ox-chart__canvas"><canvas id="chart-trend"></canvas></div>
-    </div>
 
     <div class="ox-chart-grid">
       <div class="ox-chart">
-        <div class="ox-chart__head"><div><div class="ox-chart__title">Shopee vs TikTok — Plan Slots</div></div></div>
-        <div class="ox-legend">
-          <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Shopee</span>
-          <span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>TikTok</span>
-        </div>
-        <div class="ox-chart__canvas"><canvas id="chart-platform"></canvas></div>
+        <div class="ox-chart__head"><div><div class="ox-chart__title">Plan Slots รายเดือน</div><div class="ox-chart__sub">จำนวน slot ที่จอง · ทุกเดือน</div></div></div>
+        <div class="ox-legend"><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Shopee</span><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>TikTok</span></div>
+        <div class="ox-chart__canvas"><canvas id="chart-exec-plan"></canvas></div>
       </div>
       <div class="ox-chart">
-        <div class="ox-chart__head"><div><div class="ox-chart__title">Cancellation Rate รายเดือน (%)</div></div></div>
-        <div class="ox-legend"><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-3)"></span>Cancel Rate</span></div>
-        <div class="ox-chart__canvas"><canvas id="chart-rate"></canvas></div>
+        <div class="ox-chart__head"><div><div class="ox-chart__title">รายการยกเลิกรายเดือน</div><div class="ox-chart__sub">จำนวนครั้งที่ยกเลิก (Log) · ทุกเดือน</div></div></div>
+        <div class="ox-legend"><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Shopee</span><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>TikTok</span></div>
+        <div class="ox-chart__canvas"><canvas id="chart-exec-logs"></canvas></div>
       </div>
     </div>
-
-    <!-- Timing chart -->
-    <div class="ox-chart is-wide">
-      <div class="ox-chart__head">
-        <div><div class="ox-chart__title">รอบเวลาที่ยกเลิกมากที่สุด (Top 12)</div>
-        <div class="ox-chart__sub">แสดงจำนวนการยกเลิกต่อช่วงเวลา</div></div>
+    <div class="ox-chart-grid">
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">เหตุผลการยกเลิก</div><div class="ox-chart__sub">Top 12 · ตามเดือนที่เลือก</div></div></div>
+        <div class="ox-legend"><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Shopee</span><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>TikTok</span></div>
+        <div class="ox-chart__canvas" style="height:340px"><canvas id="chart-exec-reason"></canvas></div>
       </div>
-      <div class="ox-legend"><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-5)"></span>จำนวนครั้ง</span></div>
-      <div class="ox-chart__canvas" style="height:320px"><canvas id="chart-timing"></canvas></div>
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">รอบเวลาที่ยกเลิก</div><div class="ox-chart__sub">เรียงตามเวลาไลฟ์ · ตามเดือนที่เลือก</div></div></div>
+        <div class="ox-legend"><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Shopee</span><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>TikTok</span></div>
+        <div class="ox-chart__canvas" style="height:340px"><canvas id="chart-exec-slot"></canvas></div>
+      </div>
     </div>
-
-    <!-- Top MC table -->
-    <div class="ox-table-wrap">
-      <div class="ox-table-wrap__head">
-        <span class="ox-table-wrap__title">MC ที่ Cancel สูงสุด</span>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="ox-filter-label">กรองตาราง</span>
-          <!-- hidden input for value -->
-          <input type="hidden" id="exec-mc-plat-filter" value="ALL">
-          <div class="ox-seg">
-            <button class="ox-seg__btn is-active" data-seg="exec-mc-plat-filter" onclick="segClick('exec-mc-plat-filter','ALL',this)">ทั้งหมด</button>
-            <button class="ox-seg__btn" data-seg="exec-mc-plat-filter" onclick="segClick('exec-mc-plat-filter','SHOPEE',this)">Shopee</button>
-            <button class="ox-seg__btn" data-seg="exec-mc-plat-filter" onclick="segClick('exec-mc-plat-filter','TIKTOK',this)">TikTok</button>
-          </div>
+    <div class="ox-chart-grid is-top">
+      <div class="ox-chart">
+        <div class="ox-chart__head"><div><div class="ox-chart__title">วันในสัปดาห์ที่ยกเลิก</div><div class="ox-chart__sub">ตามเดือนที่เลือก</div></div></div>
+        <div class="ox-legend"><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-1)"></span>Shopee</span><span class="ox-legend__item"><span class="ox-legend__dot" style="background:var(--omnix-chart-2)"></span>TikTok</span></div>
+        <div class="ox-chart__canvas"><canvas id="chart-exec-weekday"></canvas></div>
+      </div>
+      <div class="ox-table-wrap" style="margin:0">
+        <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">เปรียบเทียบแพลตฟอร์ม</span><span class="ox-filter-bar__meta">ตามเดือนที่เลือก</span></div>
+        <div class="ox-scroll">
+          <table class="ox-table" id="tbl-exec-compare">
+            <thead><tr><th>ตัวชี้วัด</th><th class="is-num">Shopee</th><th class="is-num">TikTok</th><th class="is-num">รวม</th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
+    </div>
+
+    <div class="ox-table-wrap">
+      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">MC ทั้งสองแพลตฟอร์ม</span><span class="ox-filter-bar__meta">ตามเดือนที่เลือก · เรียงตามจำนวนยกเลิกรวม</span></div>
       <div class="ox-scroll">
-        <table class="ox-table" id="tbl-top-mc">
-          <thead><tr>
-            <th class="sortable" data-col="mc_name">MC Name<i class="sort-icon">↕</i></th>
-            <th class="sortable is-num" data-col="shopee">Shopee<i class="sort-icon">↕</i></th>
-            <th class="sortable is-num" data-col="tiktok">TikTok<i class="sort-icon">↕</i></th>
-            <th class="sortable is-num" data-col="total">รวม<i class="sort-icon">↕</i></th>
-            <th>สัดส่วน</th>
-          </tr></thead>
+        <table class="ox-table" id="tbl-exec-mc">
+          <thead><tr><th class="sortable" data-col="mc_name">MC<i class="sort-icon">↕</i></th><th class="sortable" data-col="platforms">ไลฟ์ที่<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="s_plan">Shopee Plan<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="s_rate">Shopee Cancel%<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="s_logs">Shopee Log<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="t_plan">TikTok Plan<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="t_rate">TikTok Cancel%<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="t_logs">TikTok Log<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="total">รวม<i class="sort-icon">↕</i></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ox-table-wrap">
+      <div class="ox-table-wrap__head"><span class="ox-table-wrap__title">สรุปรายเดือน Shopee vs TikTok</span><span class="ox-filter-bar__meta">ทุกเดือน</span></div>
+      <div class="ox-scroll">
+        <table class="ox-table" id="tbl-exec-month">
+          <thead><tr><th class="sortable" data-col="_k">เดือน<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="s_plan">S Plan<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="s_util">S Util %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="s_rate">S Cancel %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="s_logs">S ยกเลิก<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="t_plan">T Plan<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="t_util">T Util %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="t_rate">T Cancel %<i class="sort-icon">↕</i></th><th class="sortable is-num" data-col="t_logs">T ยกเลิก<i class="sort-icon">↕</i></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -598,93 +601,103 @@ function updateSort(tableId, rows, cols, renderFn, state){
   if(tbody) tbody.innerHTML = renderFn(sorted);
 }
 
-// ── Exec Summary ──────────────────────────────────────────────────────────
-function renderExec(){
-  var plat = getVal('exec-platform-filter');
-  var cancelRows = RAW.cancel.filter(function(r){ return plat==='ALL'||r.platform===plat; });
-  var planRows   = RAW.plan.filter(function(r){   return plat==='ALL'||r.platform===plat; });
+// ── Exec Summary (Shopee vs TikTok) ───────────────────────────────────────
+var PLATS=['SHOPEE','TIKTOK'], PNAME={SHOPEE:'Shopee',TIKTOK:'TikTok'};
+function platStats(plat, month){
+  var pl=RAW.plan.filter(function(r){ return r.platform===plat && (month==='ALL'||r.month===month); });
+  var ca=RAW.cancel.filter(function(r){ return r.platform===plat && (month==='ALL'||r.month===month); });
+  var o={plan:null,actual:null,cancel:null,logs:ca.length,sub:0,rows:pl.length,canc:ca};
+  pl.forEach(function(r){ o.plan=(o.plan||0)+r.plan; o.actual=(o.actual||0)+r.actual; o.cancel=(o.cancel||0)+r.cancel; });
+  ca.forEach(function(r){ if(r.replacement) o.sub++; });
+  o.util=pct(o.actual,o.plan); o.rate=pct(o.cancel,o.plan); o.subr=pct(o.sub,o.logs);
+  o.mcs=unique(pl.map(function(r){return r.mc_name;})).length;
+  return o;
+}
+function addN(a,b){ return (a==null&&b==null)?null:(a||0)+(b||0); }
+function groupedBar(id, labels, sets, horizontal, total){
+  emptyChart(id, !labels.length);
+  makeChart(id,'bar',labels,PLATS.map(function(p,i){ return {label:PNAME[p],data:sets[i],backgroundColor:cv(PLAT_COLOR[p]),borderRadius:4,borderSkipped:false,barPercentage:.85,categoryPercentage:.75}; }),
+    Object.assign({scales:horizontal?{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}},
+      total?{plugins:{tooltip:{callbacks:{label:function(c){ return ' '+c.dataset.label+': '+fmtN(c.raw)+' ครั้ง ('+fmtP(pct(c.raw,total[c.datasetIndex]))+')'; }}}}}:{} ,
+      horizontal?{indexAxis:'y'}:{}));
+}
 
-  var totPlan   = planRows.reduce(function(s,r){ return s+r.plan; },0);
-  var totActual = planRows.reduce(function(s,r){ return s+r.actual; },0);
-  var totCancel = planRows.reduce(function(s,r){ return s+r.cancel; },0);
-  var util = totPlan>0?(totActual/totPlan*100):0;
-  var cRate= totPlan>0?(totCancel/totPlan*100).toFixed(1):'-';
+function renderExec(){
+  var month=getVal('exec-month-filter');
+  var st=PLATS.map(function(p){ return platStats(p,month); });
+  var S=st[0], T=st[1];
+  var all={plan:addN(S.plan,T.plan),actual:addN(S.actual,T.actual),cancel:addN(S.cancel,T.cancel),logs:S.logs+T.logs,sub:S.sub+T.sub};
+  all.util=pct(all.actual,all.plan); all.rate=pct(all.cancel,all.plan); all.subr=pct(all.sub,all.logs);
+  var range=month==='ALL'?(MONTHS.length?MONTHS[0]+' – '+MONTHS[MONTHS.length-1]:''):month;
+  var split=function(a,b){ return '<span style="color:var(--omnix-chart-1)">Shopee</span> '+a+' · <span style="color:var(--omnix-chart-2)">TikTok</span> '+b; };
 
   document.getElementById('exec-kpis').innerHTML=
-    '<div class="ox-kpi"><div class="ox-kpi__label">Total Plan Slots</div><div class="ox-kpi__value">'+totPlan.toLocaleString()+'</div><div class="ox-kpi__delta is-neutral">'+( plat==='ALL'?'รวม Shopee + TikTok':plat)+'</div></div>'+
-    '<div class="ox-kpi"><div class="ox-kpi__label">Actual Slots</div><div class="ox-kpi__value">'+totActual.toLocaleString()+'</div><div class="ox-kpi__delta is-up">▲ '+util.toFixed(1)+'% Utilization</div></div>'+
-    '<div class="ox-kpi"><div class="ox-kpi__label">Cancel (Plan)</div><div class="ox-kpi__value">'+totCancel.toLocaleString()+'</div><div class="ox-kpi__delta is-down">▼ '+cRate+'% Cancel Rate</div></div>'+
-    '<div class="ox-kpi"><div class="ox-kpi__label">Cancel Logs</div><div class="ox-kpi__value">'+cancelRows.length.toLocaleString()+'</div><div class="ox-kpi__delta is-neutral">รายการยกเลิก</div></div>';
+    '<div class="ox-kpi"><div class="ox-kpi__label">Plan Slots รวม</div><div class="ox-kpi__value">'+fmtN(all.plan)+'</div><div class="ox-kpi__delta is-neutral">'+split(fmtN(S.plan),fmtN(T.plan))+'</div></div>'+
+    '<div class="ox-kpi"><div class="ox-kpi__label">Utilization (Actual ÷ Plan)</div><div class="ox-kpi__value">'+fmtP(all.util)+'</div><div class="ox-kpi__delta is-neutral">'+split(fmtP(S.util),fmtP(T.util))+'</div></div>'+
+    '<div class="ox-kpi"><div class="ox-kpi__label">Cancel Rate (Cancel ÷ Plan)</div><div class="ox-kpi__value">'+fmtP(all.rate)+'</div><div class="ox-kpi__delta is-neutral">'+split(fmtP(S.rate),fmtP(T.rate))+'</div></div>'+
+    '<div class="ox-kpi"><div class="ox-kpi__label">รายการยกเลิก (มีคนแทน '+fmtP(all.subr)+')</div><div class="ox-kpi__value">'+fmtN(all.logs)+'</div><div class="ox-kpi__delta is-neutral">'+split(fmtN(S.logs),fmtN(T.logs))+'</div></div>';
+  var meta=document.getElementById('exec-meta'); if(meta) meta.textContent=range;
 
-  // Trend chart
-  var labels = MONTHS.map(function(m){ return MONTH_SHORT[m]||m; });
-  var agg = aggPlanByMonth(plat);
-  makeChart('chart-trend','line',labels,[
-    {label:'Plan',data:agg.map(function(r){return r.plan;}),borderColor:cv('--omnix-chart-1'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
-    {label:'Actual',data:agg.map(function(r){return r.actual;}),borderColor:cv('--omnix-chart-2'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
-    {label:'Cancel',data:agg.map(function(r){return r.cancel;}),borderColor:cv('--omnix-chart-4'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3}
-  ]);
+  // monthly per platform (all months)
+  var mon=PLATS.map(function(p){ return MONTHS.map(function(m){ return platStats(p,m); }); });
+  var labels=MONTHS.map(function(m){return MONTH_SHORT[m]||m;});
+  var line=function(p,data){ return {label:PNAME[p],data:data,borderColor:cv(PLAT_COLOR[p]),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,spanGaps:false}; };
+  makeChart('chart-exec-rate','line',labels,PLATS.map(function(p,i){ return line(p,mon[i].map(function(o){ return o.rate==null?null:+o.rate.toFixed(1); })); }),
+    {scales:{y:{ticks:{callback:function(v){return v+'%';}}}},plugins:{tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+(c.raw==null?'—':c.raw+'%');}}}}});
+  groupedBar('chart-exec-plan', labels, mon.map(function(a){ return a.map(function(o){return o.plan;}); }));
+  groupedBar('chart-exec-logs', labels, mon.map(function(a){ return a.map(function(o){return o.rows||o.logs?o.logs:null;}); }));
 
-  // Platform chart
-  var shopeeAgg=aggPlanByMonth('SHOPEE'), tiktokAgg=aggPlanByMonth('TIKTOK');
-  makeChart('chart-platform','bar',labels,[
-    {label:'Shopee',data:shopeeAgg.map(function(r){return r.plan;}),backgroundColor:cv('--omnix-chart-1')+'cc',borderRadius:4,borderSkipped:false},
-    {label:'TikTok',data:tiktokAgg.map(function(r){return r.plan;}),backgroundColor:cv('--omnix-chart-2')+'cc',borderRadius:4,borderSkipped:false}
-  ],{scales:{x:{stacked:false},y:{beginAtZero:true}}});
+  // dimensions (filtered month)
+  var tot=[S.logs,T.logs];
+  var rc=PLATS.map(function(p,i){ return countBy(st[i].canc,function(r){return r.reason||null;}); });
+  var rKeys=topEntries((function(){ var m={}; rc.forEach(function(c){ Object.keys(c).forEach(function(k){ m[k]=(m[k]||0)+c[k]; }); }); return m; })(),12).map(function(e){return e.k;});
+  groupedBar('chart-exec-reason', rKeys, rc.map(function(c){ return rKeys.map(function(k){return c[k]||0;}); }), true, tot);
 
-  // Cancel rate chart
-  var rates=agg.map(function(r){return r.plan>0?+(r.cancel/r.plan*100).toFixed(1):null;});
-  makeChart('chart-rate','bar',labels,[
-    {label:'Cancel Rate %',data:rates,backgroundColor:cv('--omnix-chart-3')+'cc',borderRadius:4,borderSkipped:false}
-  ],{scales:{y:{beginAtZero:true,ticks:{callback:function(v){return v+'%';}}}}});
+  var sc=PLATS.map(function(p,i){ return countBy(st[i].canc,function(r){ var t=(r.timing||'').replace(/\s+/g,' ').trim(); return t||null; }); });
+  var sKeys=unique(Object.keys(sc[0]).concat(Object.keys(sc[1]))).sort(function(a,b){return slotKey(a)-slotKey(b);});
+  groupedBar('chart-exec-slot', sKeys.map(function(t){return t.replace(' - ','–');}), sc.map(function(c){ return sKeys.map(function(k){return c[k]||0;}); }), false, tot);
 
-  // Timing chart — ช่วงเวลาที่ยกเลิกมากสุด
-  var timingMap = {};
-  cancelRows.forEach(function(r){
-    var t = (r.timing||'').trim().replace(/\s+/g,' ');
-    if(!t||t==='-') return;
-    timingMap[t]=(timingMap[t]||0)+1;
-  });
-  var timingSorted = Object.keys(timingMap).map(function(k){ return {t:k,n:timingMap[k]}; })
-    .sort(function(a,b){ return b.n-a.n; }).slice(0,12);
-  makeChart('chart-timing','bar',
-    timingSorted.map(function(r){return r.t;}),
-    [{label:'จำนวนครั้ง',data:timingSorted.map(function(r){return r.n;}),
-      backgroundColor:cv('--omnix-chart-5')+'cc',borderRadius:4,borderSkipped:false}],
-    {indexAxis:'y',scales:{x:{beginAtZero:true}},
-     plugins:{tooltip:{callbacks:{label:function(ctx){return ' '+ctx.raw+' ครั้ง';}}}}});
+  var wc=PLATS.map(function(p,i){ return countBy(st[i].canc,function(r){ var d=parseD(r.date); return d?d.getDay():null; }); });
+  groupedBar('chart-exec-weekday', S.logs+T.logs?WD_ORDER.map(function(i){return WD_TH[i];}):[], wc.map(function(c){ return WD_ORDER.map(function(i){return c[i]||0;}); }), false, tot);
 
-  // Top MC table
-  var mcPlatFilter = getVal('exec-mc-plat-filter');
-  var mcRows = RAW.cancel.filter(function(r){ return mcPlatFilter==='ALL'||r.platform===mcPlatFilter; });
-  var mc={};
-  mcRows.forEach(function(r){
-    if(!mc[r.mc_name]) mc[r.mc_name]={mc_name:r.mc_name,shopee:0,tiktok:0};
-    if(r.platform==='SHOPEE') mc[r.mc_name].shopee++; else mc[r.mc_name].tiktok++;
-  });
-  var mcArr = Object.values(mc).map(function(m){
-    return {mc_name:m.mc_name, shopee:m.shopee, tiktok:m.tiktok, total:m.shopee+m.tiktok};
-  }).sort(function(a,b){ return b.total-a.total; });
+  // Table: platform comparison
+  var topOf=function(c){ var t=topEntries(c,1)[0]; return t?t.k+' ('+t.n+')':'-'; };
+  var wdName=function(c){ var t=topEntries(c,1)[0]; return t?WD_TH[+t.k]+' ('+t.n+')':'-'; };
+  var allC=function(i){ var m={}; [rc,sc,wc][i].forEach(function(c){ Object.keys(c).forEach(function(k){ m[k]=(m[k]||0)+c[k]; }); }); return m; };
+  var cmp=[
+    ['Plan Slots (จอง)',fmtN(S.plan),fmtN(T.plan),fmtN(all.plan)],
+    ['Actual Slots (ไลฟ์จริง)',fmtN(S.actual),fmtN(T.actual),fmtN(all.actual)],
+    ['Cancel Slots (ยกเลิก)',fmtN(S.cancel),fmtN(T.cancel),fmtN(all.cancel)],
+    ['Utilization',fmtP(S.util),fmtP(T.util),fmtP(all.util)],
+    ['Cancel Rate',fmtP(S.rate),fmtP(T.rate),fmtP(all.rate)],
+    ['จำนวน MC (มีข้อมูล Plan)',fmtN(S.mcs||null),fmtN(T.mcs||null),'—'],
+    ['รายการยกเลิก (Log)',fmtN(S.logs),fmtN(T.logs),fmtN(all.logs)],
+    ['มีคนแทน',fmtN(S.sub)+' ('+fmtP(S.subr)+')',fmtN(T.sub)+' ('+fmtP(T.subr)+')',fmtN(all.sub)+' ('+fmtP(all.subr)+')'],
+    ['เหตุผลอันดับ 1',topOf(rc[0]),topOf(rc[1]),topOf(allC(0))],
+    ['รอบเวลาที่ยกเลิกมากสุด',topOf(sc[0]),topOf(sc[1]),topOf(allC(1))],
+    ['วันที่ยกเลิกมากสุด',wdName(wc[0]),wdName(wc[1]),wdName(allC(2))]
+  ];
+  document.querySelector('#tbl-exec-compare tbody').innerHTML=cmp.map(function(r){
+    return '<tr><td>'+r[0]+'</td><td class="is-num">'+esc(r[1])+'</td><td class="is-num">'+esc(r[2])+'</td><td class="is-num"><b>'+esc(r[3])+'</b></td></tr>'; }).join('');
 
-  var maxT = mcArr.length ? mcArr[0].total : 1;
-  var allCount = mcRows.length;
+  // Table: MC across platforms
+  var mm={};
+  function g(n){ return mm[n]||(mm[n]={mc_name:n,s_plan:null,s_rate:null,s_logs:0,t_plan:null,t_rate:null,t_logs:0,total:0,_sc:0,_tc:0}); }
+  RAW.plan.forEach(function(r){ if(month!=='ALL'&&r.month!==month) return; var o=g(r.mc_name);
+    if(r.platform==='SHOPEE'){ o.s_plan=(o.s_plan||0)+r.plan; o._sc+=r.cancel; } else { o.t_plan=(o.t_plan||0)+r.plan; o._tc+=r.cancel; } });
+  S.canc.forEach(function(r){ g(r.mc_name).s_logs++; }); T.canc.forEach(function(r){ g(r.mc_name).t_logs++; });
+  var mcArr=Object.keys(mm).map(function(n){ var o=mm[n]; o.s_rate=pct(o._sc,o.s_plan); o.t_rate=pct(o._tc,o.t_plan); o.total=o.s_logs+o.t_logs;
+    o.platforms=(o.s_plan!=null||o.s_logs?'S':'')+(o.t_plan!=null||o.t_logs?'T':''); return o; }).sort(function(a,b){ return b.total-a.total; });
+  var maxT=Math.max.apply(null,mcArr.map(function(o){return o.total;}).concat([1]));
+  fillTable('tbl-exec-mc', mcArr, [{key:'mc_name'},{key:'platforms'},{key:'s_plan',numeric:true},{key:'s_rate',numeric:true},{key:'s_logs',numeric:true},{key:'t_plan',numeric:true},{key:'t_rate',numeric:true},{key:'t_logs',numeric:true},{key:'total',numeric:true}],
+    function(o){ return '<tr><td>'+esc(o.mc_name)+'</td><td>'+(o.platforms==='ST'?'ทั้งสอง':o.platforms==='S'?'Shopee':'TikTok')+'</td><td class="is-num">'+fmtN(o.s_plan)+'</td><td class="is-num">'+fmtP(o.s_rate)+'</td><td class="is-num">'+(o.s_logs||'-')+'</td><td class="is-num">'+fmtN(o.t_plan)+'</td><td class="is-num">'+fmtP(o.t_rate)+'</td><td class="is-num">'+(o.t_logs||'-')+'</td><td class="is-num"><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><b>'+o.total+'</b><span style="width:48px">'+
+      '<div class="ox-bar-bg" style="display:flex"><div style="height:100%;width:'+(o.s_logs/maxT*100)+'%;background:var(--omnix-chart-1)"></div><div style="height:100%;width:'+(o.t_logs/maxT*100)+'%;background:var(--omnix-chart-2)"></div></div></span></div></td></tr>'; }, 9);
 
-  function renderMcRows(rows){
-    if(!rows.length) return '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--omnix-fg-muted)">ไม่มีข้อมูล</td></tr>';
-    return rows.map(function(r){
-      return '<tr><td>'+r.mc_name+'</td><td class="is-num">'+(r.shopee||'-')+'</td><td class="is-num">'+(r.tiktok||'-')+'</td><td class="is-num"><b>'+r.total+'</b></td><td><div class="ox-bar-wrap"><div class="ox-bar-bg"><div class="ox-bar-fill" style="width:'+( r.total/maxT*100).toFixed(0)+'%"></div></div><span style="font-size:12px;color:var(--omnix-fg-muted)">'+(allCount>0?(r.total/allCount*100).toFixed(1):0)+'%</span></div></td></tr>';
-    }).join('');
-  }
-
-  var mcCols=[{key:'mc_name',label:'MC'},{key:'shopee',numeric:true},{key:'tiktok',numeric:true},{key:'total',numeric:true}];
-  // First paint tbody, then attach sort
-  var tbl=document.getElementById('tbl-top-mc');
-  if(tbl){
-    var tbody=tbl.querySelector('tbody');
-    if(!tbody){ tbody=document.createElement('tbody'); tbl.appendChild(tbody); }
-    tbody.innerHTML=renderMcRows(mcArr);
-    makeSortable('tbl-top-mc', mcArr, mcCols, renderMcRows);
-  }
+  // Table: monthly side by side (all months)
+  var mRows=MONTHS.map(function(m,i){ var a=mon[0][i], b=mon[1][i];
+    return {month:m,_k:monKey(m),s_plan:a.plan,s_util:a.util,s_rate:a.rate,s_logs:a.logs||null,t_plan:b.plan,t_util:b.util,t_rate:b.rate,t_logs:b.logs||null}; });
+  fillTable('tbl-exec-month', mRows, [{key:'_k',numeric:true},{key:'s_plan',numeric:true},{key:'s_util',numeric:true},{key:'s_rate',numeric:true},{key:'s_logs',numeric:true},{key:'t_plan',numeric:true},{key:'t_util',numeric:true},{key:'t_rate',numeric:true},{key:'t_logs',numeric:true}],
+    function(r){ return '<tr'+(month!=='ALL'&&r.month===month?' class="is-hl"':'')+'><td>'+esc(r.month)+'</td><td class="is-num">'+fmtN(r.s_plan)+'</td><td class="is-num">'+fmtP(r.s_util)+'</td><td class="is-num">'+fmtP(r.s_rate)+'</td><td class="is-num">'+fmtN(r.s_logs)+'</td><td class="is-num">'+fmtN(r.t_plan)+'</td><td class="is-num">'+fmtP(r.t_util)+'</td><td class="is-num">'+fmtP(r.t_rate)+'</td><td class="is-num">'+fmtN(r.t_logs)+'</td></tr>'; }, 9);
 }
 
 // ── Platform tabs (Shopee / TikTok) ───────────────────────────────────────
@@ -835,7 +848,7 @@ var SHEET_TABS = [
 ];
 var NAME_MAP = {'PC LAED':'PC LEAD','CS DAOJAI':'CS DAO','LEAD':'PC LEAD','DAO':'CS DAO','AON':'CS AON','FRING':'OP FRING','KUKKIK':'PC KUKKIK','TANGMO':'OP TANGMO','ANN':'CT ANN','AUM':'CS AUM'};
 var STORE_KEY = 'nineplus_live_report_v2';
-var BUILD_TS = 1794195071542;
+var BUILD_TS = 1794196170482;
 var syncing = false;
 var AUTO_SYNC_MS = 60000;          // ดึงอัตโนมัติทุก 1 นาที
 var lastSyncTs = 0, lastSig = '', lastDataTs = 0;
@@ -914,6 +927,7 @@ function loadLocal(){ try{ var s=localStorage.getItem(STORE_KEY); if(!s) return 
 function activeTabId(){ var p=document.querySelector('.ox-tab-panel.is-active'); return p?p.id.replace('tab-',''):'exec'; }
 function refreshAll(){
   buildMonths();
+  populateSelect('exec-month-filter', MONTHS.slice());
   ['SHOPEE','TIKTOK'].forEach(function(p){
     var k=p.toLowerCase();
     populateSelect(k+'-month-filter', sortMonths(unique(RAW.plan.concat(RAW.cancel).filter(function(r){return r.platform===p;}).map(function(r){return r.month;}))));
